@@ -24,7 +24,7 @@ let adminLogado = false;
 // ============================================================
 const catColors = {
   alagamento:        '#F47700',
-  pavimentacao:      '#F2B513',
+  pavimentacao:      '#ffce47',
   calcada:           '#13BFF2',
   iluminacao:        '#625DB4',
   acessibilidade:    '#AC1149',
@@ -105,7 +105,7 @@ const clusterGroup = L.markerClusterGroup({
       className: '',
       html: `<div style="
         width:${size}px;height:${size}px;border-radius:50%;
-        background:rgba(29,158,117,0.85);
+        background:rgb(221, 34, 34);
         border:3px solid white;
         box-shadow:0 2px 8px rgba(0,0,0,0.35);
         display:flex;align-items:center;justify-content:center;
@@ -500,7 +500,7 @@ document.querySelectorAll('.cat-btn').forEach(btn => {
       b.style.color = '#333';
     });
     this.classList.add('active');
-    this.style.background = filtroAtivo === 'todos' ? '#1D9E75' : catColors[filtroAtivo];
+    this.style.background = filtroAtivo === 'todos' ? '#d61616' : catColors[filtroAtivo];
     this.style.color = 'white';
 
     clusterGroup.clearLayers();
@@ -513,14 +513,83 @@ document.querySelectorAll('.cat-btn').forEach(btn => {
 });
 
 // ============================================================
-// 20. ADMIN — ABRIR MODAL DE LOGIN
+// 20. ENGRENAGEM — DROPDOWN COM LOGIN E SUGESTÕES
 // ============================================================
-document.getElementById('btn-admin-login').addEventListener('click', () => {
+const gearBtn       = document.getElementById('btn-admin-login');
+const gearDropdown  = document.getElementById('gear-dropdown');
+
+gearBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const isOpen = gearDropdown.style.display === 'block';
+  gearDropdown.style.display = isOpen ? 'none' : 'block';
+});
+
+gearDropdown.addEventListener('click', (e) => {
+  e.stopPropagation();
+});
+
+document.addEventListener('click', () => {
+  gearDropdown.style.display = 'none';
+});
+
+document.getElementById('btn-menu-login').addEventListener('click', () => {
+  gearDropdown.style.display = 'none';
   document.getElementById('admin-erro').style.display = 'none';
   document.getElementById('admin-email').value = '';
   document.getElementById('admin-senha').value = '';
   document.getElementById('modal-admin').classList.add('open');
 });
+
+document.getElementById('btn-menu-sugestoes').addEventListener('click', () => {
+  gearDropdown.style.display = 'none';
+  document.getElementById('sugestao-texto').value = '';
+  document.getElementById('sugestao-contato').value = '';
+  document.getElementById('sugestao-erro').style.display = 'none';
+  document.getElementById('sugestao-ok').style.display = 'none';
+  document.getElementById('modal-sugestoes').classList.add('open');
+});
+
+document.getElementById('btn-sugestao-cancel').addEventListener('click', () =>
+  document.getElementById('modal-sugestoes').classList.remove('open'));
+
+document.getElementById('btn-sugestao-enviar').addEventListener('click', async function() {
+  const texto   = document.getElementById('sugestao-texto').value.trim();
+  const contato = document.getElementById('sugestao-contato').value.trim();
+  const erroEl  = document.getElementById('sugestao-erro');
+  const okEl    = document.getElementById('sugestao-ok');
+
+  erroEl.style.display = 'none';
+  okEl.style.display   = 'none';
+
+  if (!texto) {
+    erroEl.textContent = 'Por favor, escreva sua sugestão antes de enviar.';
+    erroEl.style.display = 'block';
+    return;
+  }
+
+  this.disabled = true;
+  this.textContent = 'Enviando...';
+
+  const { error } = await supabaseClient
+    .from('sugestoes')
+    .insert({ texto, contato: contato || null });
+
+  this.disabled = false;
+  this.textContent = 'Enviar';
+
+  if (error) {
+    erroEl.textContent = 'Erro ao enviar. Tente novamente.';
+    erroEl.style.display = 'block';
+    return;
+  }
+
+  okEl.style.display = 'block';
+  document.getElementById('sugestao-texto').value = '';
+  document.getElementById('sugestao-contato').value = '';
+  setTimeout(() => document.getElementById('modal-sugestoes').classList.remove('open'), 2000);
+});
+
+
 
 document.getElementById('btn-admin-cancel').addEventListener('click', () =>
   document.getElementById('modal-admin').classList.remove('open'));
