@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <link rel="icon" type="image/png" href="logo UC.png">
+  <link rel="icon" type="image/png" href="logo UC - Copia.png">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mapeamento Comunitário — Mapeamento Comunitário</title>
@@ -35,7 +35,13 @@
     <div class="header-info">
       <span>Mapeamento Comunitário · Pato Branco, PR</span>
     </div>
-    <button id="btn-admin-login" title="Área administrativa">⚙</button>
+    <div id="gear-menu-wrapper">
+      <button id="btn-admin-login" title="Área administrativa">⚙</button>
+      <div id="gear-dropdown" style="display:none;">
+        <button id="btn-menu-login">Login</button>
+        <button id="btn-menu-sugestoes">Sugestões</button>
+      </div>
+    </div>
     <span id="admin-status" style="display:none;">
       <span id="admin-email-label"></span>
       <button id="btn-logout">Sair</button>
@@ -76,7 +82,7 @@
 <div class="modal-bg" id="modal-sobre">
   <div class="modal modal-sobre-conteudo">
     <button class="btn-fechar-sobre" id="btn-fechar-sobre">×</button>
-    <h2>Bem-vindo(a) ao <span style="color:#1D9E75;font-family:'Bebas Neue',sans-serif;letter-spacing:5px;"> MAP COM</span>!</h2>
+    <h2>Bem-vindo(a) ao <span style="color:#d61616;font-family:'Bebas Neue',sans-serif;letter-spacing:5px;"> MAP COM</span>!</h2>
     <p>O projeto surge para dar voz às experiências cotidianas, transformando relatos individuais em dados coletivos. É a nossa ferramenta para identificar problemas compartilhados e buscar melhorias que beneficiem a todos, fortalecendo o cuidado com o espaço que chamamos de casa.</p>
     <p>Este espaço é parte de uma pesquisa de Mestrado da UTFPR (Campus Pato Branco) do programa de Pós-graduação em Desenvolvimento Regional, por uma bolsista da Fundação Araucária. Nosso objetivo é criar um canal intuitivo onde você pode sinalizar problemas urbanos e compartilhar sua vivência na cidade.</p>
     <p><strong>Por que participar?</strong> Sua colaboração é totalmente anônima e fundamental para transformarmos dados em mobilização por melhorias. Mesmo que um problema já tenha sido marcado por outra pessoa, registre o seu relato! Quanto mais indicações um local recebe, maior se torna a evidência da urgência daquele problema.</p>
@@ -169,6 +175,23 @@
     <div class="modal-btns">
       <button class="btn-cancel" id="btn-admin-cancel">Cancelar</button>
       <button class="btn-save" id="btn-admin-entrar">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Sugestões -->
+<div class="modal-bg" id="modal-sugestoes">
+  <div class="modal">
+    <h3>Enviar Sugestão</h3>
+    <label>Sua sugestão</label>
+    <textarea id="sugestao-texto" placeholder="Escreva sua sugestão, ideia ou feedback..." style="min-height:100px;"></textarea>
+    <label>Contato <span style="color:#aaa;font-weight:400;">(opcional)</span></label>
+    <input type="text" id="sugestao-contato" placeholder="E-mail ou WhatsApp..." style="width:100%;padding:10px;margin-bottom:15px;border:1px solid #ddd;border-radius:8px;font-family:inherit;font-size:13px;" />
+    <p id="sugestao-erro" style="color:#e53935;font-size:12px;margin-bottom:10px;display:none;"></p>
+    <p id="sugestao-ok" style="color:#d61616;font-size:12px;margin-bottom:10px;display:none;">✓ Sugestão enviada! Obrigado.</p>
+    <div class="modal-btns">
+      <button class="btn-cancel" id="btn-sugestao-cancel">Cancelar</button>
+      <button class="btn-save" id="btn-sugestao-enviar">Enviar</button>
     </div>
   </div>
 </div>
