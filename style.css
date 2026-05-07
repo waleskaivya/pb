@@ -79,7 +79,6 @@ body {
 /* --- CABEÇALHO INSTITUCIONAL (LOGO-MARCAS) --- */
 .institutional-logos {
   background: var(--bg-primary);
-  border-bottom: 1px solid var(--border-color);
   display: flex;
   justify-content: center;
   align-items: center;
