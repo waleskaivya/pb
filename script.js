@@ -238,7 +238,7 @@ function lerCampoAlagamento(selectId, outroId) {
 // 11. ADICIONAR MARCADOR
 // ============================================================
 function adicionarMarcador({ id, lat, lng, categoria, descricao, autor_token,
-    alag_frequencia, alag_caracteristica, alag_origem, denuncias, denunciasTokens }) {
+    alag_intensidade, alag_caracteristica, alag_danos, denuncias, denunciasTokens }) {
 
   const tokens = Array.isArray(denunciasTokens) ? denunciasTokens
                : Array.isArray(denuncias)        ? denuncias
@@ -251,7 +251,7 @@ function adicionarMarcador({ id, lat, lng, categoria, descricao, autor_token,
 
   marker._registroData = {
     id, lat, lng, categoria, descricao, autor_token,
-    alag_frequencia, alag_caracteristica, alag_origem,
+    alag_intensidade, alag_caracteristica, alag_danos,
     denuncias: qtd, denunciasTokens: tokens, denunciado
   };
   marker.bindPopup(montarPopup(marker._registroData));
@@ -314,9 +314,9 @@ function montarPopup(data) {
 
   let extras = '';
   if (data.categoria === 'alagamento') {
-    if (data.alag_frequencia)     extras += `<p style="margin:4px 0 0"><strong>Frequência:</strong> ${data.alag_frequencia}</p>`;
+    if (data.alag_intensidade)    extras += `<p style="margin:4px 0 0"><strong>Intensidade:</strong> ${data.alag_intensidade}</p>`;
     if (data.alag_caracteristica) extras += `<p style="margin:4px 0 0"><strong>Características:</strong> ${data.alag_caracteristica}</p>`;
-    if (data.alag_origem)         extras += `<p style="margin:4px 0 0"><strong>Origem:</strong> ${data.alag_origem}</p>`;
+    if (data.alag_danos)          extras += `<p style="margin:4px 0 0"><strong>Danos:</strong> ${data.alag_danos}</p>`;
   }
 
   return `
@@ -470,9 +470,9 @@ document.getElementById('btn-save').onclick = async function() {
   };
 
   if (cat === 'alagamento') {
-    novoRegistro.alag_frequencia     = lerCampoAlagamento('select-frequencia',    'frequencia-outro');
+    novoRegistro.alag_intensidade    = lerCampoAlagamento('select-frequencia',    'frequencia-outro');
     novoRegistro.alag_caracteristica = lerCampoAlagamento('select-caracteristica','caracteristica-outro');
-    novoRegistro.alag_origem         = lerCampoAlagamento('select-origem',        'origem-outro');
+    novoRegistro.alag_danos          = lerCampoAlagamento('select-origem',        'origem-outro');
   }
 
   const { data, error } = await supabaseClient
