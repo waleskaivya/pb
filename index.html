@@ -9,6 +9,31 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
   <link rel="stylesheet" href="style.css">
+  <style>
+    .checkbox-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 15px;
+    }
+    .checkbox-label {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-primary, #333);
+      cursor: pointer;
+      line-height: 1.4;
+    }
+    .checkbox-label input[type="checkbox"] {
+      accent-color: #d61616;
+      width: 15px;
+      height: 15px;
+      margin-top: 2px;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+  </style>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
   <script>
     // Aplica o tema salvo ANTES de renderizar (evita flash de tema errado)
@@ -157,14 +182,13 @@
       <input type="text" class="outro-input" id="caracteristica-outro" placeholder="Descreva..." style="display:none;" />
 
       <label>O alagamento provoca algum dano?</label>
-      <select id="select-origem">
-        <option value="">Selecione...</option>
-        <option value="Danos materiais: móveis; veíulos; estruturas">a) Danos materiais: móveis; veíulos; estruturas</option>
-        <option value="Interrupção de tráfego, isolamento">b) Interrupção de tráfego, isolamento</option>
-        <option value="Problemas de saúde">c) Problemas de saúde</option>
-        <option value="Não informar">d) Não informar</option>
-        <option value="outro">e) Outro (escrever)</option>
-      </select>
+      <div id="checkboxes-danos" class="checkbox-group">
+        <label class="checkbox-label"><input type="checkbox" name="dano" value="Danos materiais: móveis, veículos, estruturas"> a) Danos materiais: móveis, veículos, estruturas</label>
+        <label class="checkbox-label"><input type="checkbox" name="dano" value="Interrupção de tráfego, isolamento"> b) Interrupção de tráfego, isolamento</label>
+        <label class="checkbox-label"><input type="checkbox" name="dano" value="Problemas de saúde"> c) Problemas de saúde</label>
+        <label class="checkbox-label"><input type="checkbox" name="dano" value="Não informar"> d) Não informar</label>
+        <label class="checkbox-label"><input type="checkbox" name="dano" value="outro" id="dano-outro-check"> e) Outro (escrever)</label>
+      </div>
       <input type="text" class="outro-input" id="origem-outro" placeholder="Descreva..." style="display:none;" />
 
     </div>

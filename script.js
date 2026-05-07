@@ -211,16 +211,26 @@ function setupSelectOutro(selectId, inputId) {
 
 setupSelectOutro('select-frequencia',    'frequencia-outro');
 setupSelectOutro('select-caracteristica','caracteristica-outro');
-setupSelectOutro('select-origem',        'origem-outro');
+
+// Checkbox "outro" de danos — mostra/esconde campo de texto
+document.getElementById('dano-outro-check').addEventListener('change', function() {
+  const inp = document.getElementById('origem-outro');
+  if (this.checked) { inp.style.display = 'block'; inp.focus(); }
+  else { inp.style.display = 'none'; inp.value = ''; }
+});
 
 function limparCamposAlagamento() {
-  ['select-frequencia', 'select-caracteristica', 'select-origem'].forEach(id => {
+  ['select-frequencia', 'select-caracteristica'].forEach(id => {
     document.getElementById(id).value = '';
   });
   ['frequencia-outro', 'caracteristica-outro', 'origem-outro'].forEach(id => {
     const el = document.getElementById(id);
     el.value = '';
     el.style.display = 'none';
+  });
+  // Desmarca todos os checkboxes de danos
+  document.querySelectorAll('#checkboxes-danos input[type="checkbox"]').forEach(cb => {
+    cb.checked = false;
   });
 }
 
@@ -232,6 +242,20 @@ function lerCampoAlagamento(selectId, outroId) {
     return texto ? `Outro: ${texto}` : 'Outro';
   }
   return sel.value;
+}
+
+// Lê os checkboxes de danos e retorna um array com os selecionados
+function lerDanosAlagamento() {
+  const marcados = [];
+  document.querySelectorAll('#checkboxes-danos input[type="checkbox"]:checked').forEach(cb => {
+    if (cb.value === 'outro') {
+      const texto = document.getElementById('origem-outro').value.trim();
+      marcados.push(texto ? `Outro: ${texto}` : 'Outro');
+    } else {
+      marcados.push(cb.value);
+    }
+  });
+  return marcados.length > 0 ? marcados : null;
 }
 
 // ============================================================
@@ -316,7 +340,12 @@ function montarPopup(data) {
   if (data.categoria === 'alagamento') {
     if (data.alag_intensidade)    extras += `<p style="margin:4px 0 0"><strong>Intensidade:</strong> ${data.alag_intensidade}</p>`;
     if (data.alag_caracteristica) extras += `<p style="margin:4px 0 0"><strong>Características:</strong> ${data.alag_caracteristica}</p>`;
-    if (data.alag_danos)          extras += `<p style="margin:4px 0 0"><strong>Danos:</strong> ${data.alag_danos}</p>`;
+    if (data.alag_danos) {
+      const danos = Array.isArray(data.alag_danos) ? data.alag_danos : [data.alag_danos];
+      if (danos.length > 0) {
+        extras += `<p style="margin:4px 0 0"><strong>Danos:</strong> ${danos.join(', ')}</p>`;
+      }
+    }
   }
 
   return `
@@ -472,7 +501,7 @@ document.getElementById('btn-save').onclick = async function() {
   if (cat === 'alagamento') {
     novoRegistro.alag_intensidade    = lerCampoAlagamento('select-frequencia',    'frequencia-outro');
     novoRegistro.alag_caracteristica = lerCampoAlagamento('select-caracteristica','caracteristica-outro');
-    novoRegistro.alag_danos          = lerCampoAlagamento('select-origem',        'origem-outro');
+    novoRegistro.alag_danos          = lerDanosAlagamento();
   }
 
   const { data, error } = await supabaseClient
