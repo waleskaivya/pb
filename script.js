@@ -496,8 +496,8 @@ document.querySelectorAll('.cat-btn').forEach(btn => {
 
     document.querySelectorAll('.cat-btn').forEach(b => {
       b.classList.remove('active');
-      b.style.background = 'white';
-      b.style.color = '#333';
+      b.style.background = '';
+      b.style.color = '';
     });
     this.classList.add('active');
     this.style.background = filtroAtivo === 'todos' ? '#d61616' : catColors[filtroAtivo];
@@ -513,10 +513,10 @@ document.querySelectorAll('.cat-btn').forEach(btn => {
 });
 
 // ============================================================
-// 20. ENGRENAGEM — DROPDOWN COM LOGIN E SUGESTÕES
+// 20. ENGRENAGEM — DROPDOWN COM LOGIN, SUGESTÕES E TEMA
 // ============================================================
-const gearBtn       = document.getElementById('btn-admin-login');
-const gearDropdown  = document.getElementById('gear-dropdown');
+const gearBtn      = document.getElementById('btn-admin-login');
+const gearDropdown = document.getElementById('gear-dropdown');
 
 gearBtn.addEventListener('click', (e) => {
   e.stopPropagation();
@@ -549,6 +549,34 @@ document.getElementById('btn-menu-sugestoes').addEventListener('click', () => {
   document.getElementById('modal-sugestoes').classList.add('open');
 });
 
+// ============================================================
+// 20b. TOGGLE DE TEMA CLARO / ESCURO
+// ============================================================
+function aplicarTema(tema) {
+  document.documentElement.setAttribute('data-theme', tema);
+  localStorage.setItem('tema', tema);
+
+  const labelEl = document.getElementById('tema-label-texto');
+  if (tema === 'dark') {
+    labelEl.textContent = 'Tema claro';
+  } else {
+    labelEl.textContent = 'Tema escuro';
+  }
+}
+
+// Inicializa o label do botão de acordo com o tema atual
+aplicarTema(localStorage.getItem('tema') || 'light');
+
+document.getElementById('btn-menu-tema').addEventListener('click', () => {
+  const temaAtual = document.documentElement.getAttribute('data-theme');
+  const novoTema  = temaAtual === 'dark' ? 'light' : 'dark';
+  aplicarTema(novoTema);
+  // Não fecha o dropdown — permite ver a mudança em tempo real
+});
+
+// ============================================================
+// 21. SUGESTÕES
+// ============================================================
 document.getElementById('btn-sugestao-cancel').addEventListener('click', () =>
   document.getElementById('modal-sugestoes').classList.remove('open'));
 
@@ -589,13 +617,11 @@ document.getElementById('btn-sugestao-enviar').addEventListener('click', async f
   setTimeout(() => document.getElementById('modal-sugestoes').classList.remove('open'), 2000);
 });
 
-
-
 document.getElementById('btn-admin-cancel').addEventListener('click', () =>
   document.getElementById('modal-admin').classList.remove('open'));
 
 // ============================================================
-// 21. ADMIN — LOGIN
+// 22. ADMIN — LOGIN
 // ============================================================
 document.getElementById('btn-admin-entrar').addEventListener('click', async function() {
   const email = document.getElementById('admin-email').value.trim();
@@ -629,7 +655,7 @@ document.getElementById('btn-admin-entrar').addEventListener('click', async func
 });
 
 // ============================================================
-// 22. ADMIN — LOGOUT
+// 23. ADMIN — LOGOUT
 // ============================================================
 document.getElementById('btn-logout').addEventListener('click', async () => {
   await supabaseClient.auth.signOut();
@@ -640,7 +666,7 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
 });
 
 // ============================================================
-// 23. VERIFICAR SESSÃO SALVA
+// 24. VERIFICAR SESSÃO SALVA
 // ============================================================
 supabaseClient.auth.getSession().then(({ data }) => {
   if (data.session) {
@@ -652,6 +678,6 @@ supabaseClient.auth.getSession().then(({ data }) => {
 });
 
 // ============================================================
-// 24. INICIAR
+// 25. INICIAR
 // ============================================================
 carregarRegistros();

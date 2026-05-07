@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="light">
 <head>
   <link rel="icon" type="image/png" href="logo UC - Copia.png">
   <meta charset="UTF-8" />
@@ -10,6 +10,13 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+  <script>
+    // Aplica o tema salvo ANTES de renderizar (evita flash de tema errado)
+    (function() {
+      const saved = localStorage.getItem('tema') || 'light';
+      document.documentElement.setAttribute('data-theme', saved);
+    })();
+  </script>
 </head>
 <body>
 
@@ -38,8 +45,17 @@
     <div id="gear-menu-wrapper">
       <button id="btn-admin-login" title="Área administrativa">⚙</button>
       <div id="gear-dropdown" style="display:none;">
+        <div class="gear-section-label">Conta</div>
         <button id="btn-menu-login">Login</button>
         <button id="btn-menu-sugestoes">Sugestões</button>
+        <div class="gear-divider"></div>
+        <div class="gear-section-label">Aparência</div>
+        <button id="btn-menu-tema">
+          <span id="tema-label-texto">Tema escuro</span>
+          <span class="tema-toggle-track" id="tema-toggle-track">
+            <span class="tema-toggle-thumb"></span>
+          </span>
+        </button>
       </div>
     </div>
     <span id="admin-status" style="display:none;">
