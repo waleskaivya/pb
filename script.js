@@ -76,12 +76,21 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 // 6. LEGENDA
 // ============================================================
 const legendDiv = document.getElementById('map-legend');
-legendDiv.innerHTML = '<strong>Categorias</strong>';
+legendDiv.innerHTML = '<strong id="legend-title" style="cursor:pointer;user-select:none;">Categorias <span id="legend-arrow">▲</span></strong>';
 Object.keys(catColors).forEach(cat => {
   const item = document.createElement('div');
   item.className = 'leg-item';
   item.innerHTML = `<span class="leg-dot" style="background:${catColors[cat]}"></span>${catLabels[cat]}`;
   legendDiv.appendChild(item);
+});
+
+// Toggle recolher/expandir legenda
+document.getElementById('legend-title').addEventListener('click', () => {
+  const items = legendDiv.querySelectorAll('.leg-item');
+  const arrow = document.getElementById('legend-arrow');
+  const recolhido = items[0].style.display === 'none';
+  items.forEach(el => el.style.display = recolhido ? 'flex' : 'none');
+  arrow.textContent = recolhido ? '▲' : '▼';
 });
 
 // ============================================================
