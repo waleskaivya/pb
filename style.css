@@ -604,6 +604,25 @@ footer {
   color: #888;
 }
 
+/* --- POPUP DO LEAFLET — tamanho controlado em telas pequenas --- */
+.leaflet-popup-content-wrapper {
+  max-width: min(260px, 72vw);
+  word-break: break-word;
+}
+
+.leaflet-popup-content {
+  margin: 10px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* Esconde a legenda enquanto um popup estiver aberto em mobile */
+@media (max-width: 480px) {
+  .leaflet-popup-open .legend {
+    display: none;
+  }
+}
+
 /* --- AJUSTES MOBILE --- */
 @media (max-width: 480px) {
   .institutional-logos { gap: 20px; }
