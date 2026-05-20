@@ -128,7 +128,7 @@ const clusterGroup = L.markerClusterGroup({
 });
 clusterGroup.addTo(map);
 
-function makeIcon(color, denunciado) {
+function makeIcon(color, denunciado, fotoPendente) {
   if (denunciado && adminLogado) {
     return L.divIcon({
       className: '',
@@ -136,6 +136,20 @@ function makeIcon(color, denunciado) {
         width:18px;height:18px;border-radius:50%;
         background:#e53935;border:2px solid white;
         box-shadow:0 0 0 3px rgba(229,57,53,0.35),0 1px 5px rgba(0,0,0,0.35);
+        animation:pulso 1.5s ease-in-out infinite;
+      "></div>`,
+      iconSize: [18, 18],
+      iconAnchor: [9, 9]
+    });
+  }
+  if (fotoPendente && adminLogado) {
+    return L.divIcon({
+      className: '',
+      html: `<div style="
+        width:18px;height:18px;border-radius:50%;
+        background:${color};border:2px solid white;
+        box-shadow:0 0 0 3px rgba(214,150,0,0.45),0 1px 5px rgba(0,0,0,0.35);
+        animation:pulso 1.5s ease-in-out infinite;
       "></div>`,
       iconSize: [18, 18],
       iconAnchor: [9, 9]
@@ -195,6 +209,458 @@ document.getElementById('close-hint').addEventListener('click', function(e) {
   e.stopPropagation();
   document.getElementById('hint-box').style.display = 'none';
 });
+
+// ============================================================
+// 9b. FOTO — PREVIEW NO MODAL
+// ============================================================
+const fotoInput    = document.getElementById('foto-input');
+const fotoPreview  = document.getElementById('foto-preview');
+const fotoWrap     = document.getElementById('foto-preview-wrap');
+const fotoLabel    = document.getElementById('foto-label-texto');
+const fotoRemover  = document.getElementById('foto-remover');
+let   fotoArquivo  = null;
+
+fotoInput.addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file) return;
+  fotoArquivo = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    fotoPreview.src = e.target.result;
+    fotoWrap.style.display = 'block';
+    fotoLabel.textContent  = '✓ ' + file.name;
+  };
+  reader.readAsDataURL(file);
+});
+
+fotoRemover.addEventListener('click', () => {
+  fotoArquivo = null;
+  fotoInput.value = '';
+  fotoWrap.style.display = 'none';
+  fotoLabel.textContent  = 'Anexar foto';
+});
+
+function limparFoto() {
+  fotoArquivo = null;
+  fotoInput.value = '';
+  fotoWrap.style.display = 'none';
+  fotoLabel.textContent  = 'Anexar foto';
+}
+
+// ============================================================
+// 9d. PAINEL DE MODERAÇÃO (admin)
+// ============================================================
+const motivosReprovacao = [
+  { valor: 'reprovada_dados',    label: 'Dados pessoais (rosto ou placa)' },
+  { valor: 'reprovada_qualidade',label: 'Qualidade ruim (foto ilegível)'  },
+  { valor: 'reprovada_impr',     label: 'Conteúdo incompatível'           },
+];
+
+async function atualizarFilaModeracaoBadge() {
+  if (!adminLogado) return;
+  const [resFotos, resDen, resSug] = await Promise.all([
+    supabaseClient.from('registros').select('id', { count: 'exact', head: true }).eq('foto_status', 'analise'),
+    supabaseClient.from('registros').select('id', { count: 'exact', head: true }).neq('denuncias', '[]'),
+    supabaseClient.from('sugestoes').select('id',  { count: 'exact', head: true }).eq('lida', false)
+  ]);
+  const qtd = (resFotos.count || 0) + (resDen.count || 0) + (resSug.count || 0);
+  const badge = document.getElementById('badge-moderacao');
+  if (qtd > 0) {
+    badge.style.display = 'inline-block';
+    badge.textContent   = qtd > 9 ? '9+' : qtd;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+async function carregarFilaModeracao() {
+  const lista = document.getElementById('moderacao-lista');
+  const vazio = document.getElementById('moderacao-vazio');
+  lista.innerHTML = '<p style="font-size:13px;color:var(--text-secondary);text-align:center;padding:12px 0;">Carregando...</p>';
+
+  // Busca fotos pendentes, pontos denunciados e sugestões em paralelo
+  const [resFotos, resDenuncias, resSugestoes] = await Promise.all([
+    supabaseClient.from('registros')
+      .select('id, categoria, descricao, lat, lng, foto_url, foto_status, criado_em')
+      .eq('foto_status', 'analise')
+      .order('criado_em', { ascending: true }),
+    supabaseClient.from('registros')
+      .select('id, categoria, descricao, lat, lng, denuncias, criado_em')
+      .neq('denuncias', '[]')
+      .order('criado_em', { ascending: true }),
+    supabaseClient.from('sugestoes')
+      .select('id, texto, contato, criado_em')
+      .eq('lida', false)
+      .order('criado_em', { ascending: true })
+  ]);
+
+  lista.innerHTML = '';
+  const fotos      = resFotos.data      || [];
+  const denuncias  = resDenuncias.data  || [];
+  const sugestoes  = resSugestoes.data  || [];
+
+  if (fotos.length === 0 && denuncias.length === 0 && sugestoes.length === 0) {
+    vazio.style.display = 'block';
+    return;
+  }
+  vazio.style.display = 'none';
+
+  // ── Seção: Fotos para aprovação ──
+  if (fotos.length > 0) {
+    const secHeader = document.createElement('div');
+    secHeader.innerHTML = `<div class="gear-section-label" style="padding:6px 2px 4px;">🖼 Fotos aguardando aprovação (${fotos.length})</div>`;
+    lista.appendChild(secHeader);
+
+    fotos.forEach(reg => {
+      const card = document.createElement('div');
+      card.style.cssText = 'border:1px solid var(--border-color);border-radius:8px;overflow:hidden;background:var(--bg-surface);margin-bottom:2px;';
+      const dataF = new Date(reg.criado_em).toLocaleString('pt-BR', { dateStyle:'short', timeStyle:'short' });
+
+      card.innerHTML = `
+        <div style="padding:8px 12px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;" class="card-zoom-header" data-lat="${reg.lat}" data-lng="${reg.lng}" data-id="${reg.id}">
+          <div>
+            <span style="font-size:13px;font-weight:600;color:var(--text-primary);">${catLabels[reg.categoria] || reg.categoria}</span>
+            ${reg.descricao ? `<span style="font-size:12px;color:var(--text-secondary);"> — ${reg.descricao.substring(0,40)}${reg.descricao.length>40?'…':''}</span>` : ''}
+          </div>
+          <span style="font-size:10px;color:var(--text-secondary);white-space:nowrap;">${dataF} 🔍</span>
+        </div>
+        <div style="padding:10px 12px;">
+          <img src="${reg.foto_url}" alt="Foto para moderação"
+            style="width:100%;max-height:180px;object-fit:cover;border-radius:6px;border:1px solid var(--border-light);display:block;margin-bottom:10px;"
+            onerror="this.style.display='none'" />
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <button class="btn-save" style="font-size:12px;padding:6px 14px;" data-id="${reg.id}" data-acao="aprovar">Aprovar</button>
+            <select class="motivo-select" data-id="${reg.id}" style="font-size:12px;padding:6px 8px;border:1px solid var(--input-border);border-radius:8px;background:var(--bg-surface);color:var(--text-primary);font-family:inherit;flex:1;min-width:160px;">
+              <option value="">Reprovar — selecione o motivo...</option>
+              ${motivosReprovacao.map(m => `<option value="${m.valor}">${m.label}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+      `;
+
+      // Zoom ao clicar no cabeçalho
+      card.querySelector('.card-zoom-header').addEventListener('click', () => {
+        document.getElementById('modal-moderacao').classList.remove('open');
+        map.setView([reg.lat, reg.lng], 17, { animate: true });
+        const item = markers.find(m => m.id === reg.id);
+        if (item) setTimeout(() => item.marker.openPopup(), 400);
+      });
+
+      card.querySelector('[data-acao="aprovar"]').addEventListener('click', async () => {
+        await moderarFoto(reg.id, 'aprovada', card);
+      });
+
+      card.querySelector('.motivo-select').addEventListener('change', async function() {
+        if (!this.value) return;
+        const motivo = this.value;
+        if (!confirm(`Reprovar como "${motivosReprovacao.find(m=>m.valor===motivo).label}"?`)) { this.value=''; return; }
+        await moderarFoto(reg.id, motivo, card, motivo === 'reprovada_impr');
+      });
+
+      lista.appendChild(card);
+    });
+  }
+
+  // ── Seção: Pontos denunciados ──
+  if (denuncias.length > 0) {
+    const secHeader = document.createElement('div');
+    secHeader.innerHTML = `<div class="gear-section-label" style="padding:10px 2px 4px;">⚠ Pontos denunciados (${denuncias.length})</div>`;
+    lista.appendChild(secHeader);
+
+    denuncias.forEach(reg => {
+      const qtd  = Array.isArray(reg.denuncias) ? reg.denuncias.length : 0;
+      const card = document.createElement('div');
+      card.style.cssText = 'border:1px solid rgba(229,57,53,0.3);border-radius:8px;background:var(--bg-surface);margin-bottom:2px;overflow:hidden;';
+      const dataF = new Date(reg.criado_em).toLocaleString('pt-BR', { dateStyle:'short', timeStyle:'short' });
+
+      card.innerHTML = `
+        <div style="padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;" class="card-zoom-header" data-lat="${reg.lat}" data-lng="${reg.lng}" data-id="${reg.id}">
+          <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+            <span style="font-size:13px;font-weight:600;color:var(--text-primary);">${catLabels[reg.categoria] || reg.categoria}</span>
+            ${reg.descricao ? `<span style="font-size:12px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"> — ${reg.descricao}</span>` : ''}
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+            <span style="padding:2px 8px;background:#e53935;color:white;border-radius:10px;font-size:10px;font-weight:600;">⚑ ${qtd} denúncia${qtd>1?'s':''}</span>
+            <span style="font-size:10px;color:var(--text-secondary);">🔍 ver</span>
+          </div>
+        </div>
+        <div style="padding:0 12px 10px;display:flex;gap:6px;">
+          <button class="btn-save" style="font-size:12px;padding:5px 12px;" data-id="${reg.id}" data-acao="ignorar">Ignorar denúncias</button>
+          <button class="btn-cancel" style="font-size:12px;padding:5px 12px;color:#e53935;border-color:#e53935;" data-id="${reg.id}" data-acao="excluir-ponto">Excluir ponto</button>
+        </div>
+      `;
+
+      card.querySelector('.card-zoom-header').addEventListener('click', () => {
+        document.getElementById('modal-moderacao').classList.remove('open');
+        map.setView([reg.lat, reg.lng], 17, { animate: true });
+        const item = markers.find(m => m.id === reg.id);
+        if (item) setTimeout(() => item.marker.openPopup(), 400);
+      });
+
+      card.querySelector('[data-acao="ignorar"]').addEventListener('click', async () => {
+        await supabaseClient.from('registros').update({ denuncias: [] }).eq('id', reg.id);
+        const item = markers.find(m => m.id === reg.id);
+        if (item) {
+          item.marker._registroData.denuncias = 0;
+          item.marker._registroData.denunciasTokens = [];
+          item.marker._registroData.denunciado = false;
+          item.denunciado = false;
+          const cor = catColors[item.marker._registroData.categoria] || '#999';
+          item.marker.setIcon(makeIcon(cor, false, item.marker._registroData.foto_status === 'analise'));
+          item.marker.setPopupContent(montarPopup(item.marker._registroData));
+        }
+        animarRemocaoCard(card, lista, vazio);
+        atualizarFilaModeracaoBadge();
+      });
+
+      card.querySelector('[data-acao="excluir-ponto"]').addEventListener('click', async () => {
+        if (!confirm('Excluir este ponto permanentemente?')) return;
+        await supabaseClient.from('registros').delete().eq('id', reg.id);
+        const idx = markers.findIndex(m => m.id === reg.id);
+        if (idx !== -1) { markers[idx].marker.remove(); markers.splice(idx, 1); updateCounter(); }
+        animarRemocaoCard(card, lista, vazio);
+        atualizarFilaModeracaoBadge();
+      });
+
+      lista.appendChild(card);
+    });
+  }
+
+  // ── Seção: Sugestões ──
+  if (sugestoes.length > 0) {
+    const secSug = document.createElement('div');
+    secSug.innerHTML = `<div class="gear-section-label" style="padding:10px 2px 4px;">💡 Sugestões (${sugestoes.length})</div>`;
+    lista.appendChild(secSug);
+
+    sugestoes.forEach(sug => {
+      const card = document.createElement('div');
+      card.style.cssText = 'border:1px solid var(--border-color);border-radius:8px;background:var(--bg-surface);margin-bottom:2px;overflow:hidden;';
+      const dataF = new Date(sug.criado_em).toLocaleString('pt-BR', { dateStyle:'short', timeStyle:'short' });
+      card.innerHTML = `
+        <div style="padding:10px 12px;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;">
+            <span style="font-size:13px;font-weight:600;color:var(--text-primary);">Sugestão</span>
+            <span style="font-size:10px;color:var(--text-secondary);white-space:nowrap;flex-shrink:0;">${dataF}</span>
+          </div>
+          <p style="font-size:13px;color:var(--text-primary);line-height:1.5;margin:0 0 6px;">${sug.texto}</p>
+          ${sug.contato ? `<p style="font-size:11px;color:var(--text-secondary);margin:0 0 8px;">Contato: ${sug.contato}</p>` : ''}
+          <button class="btn-cancel" style="font-size:12px;padding:5px 12px;" data-acao="marcar-lida">Marcar como lida</button>
+        </div>
+      `;
+      card.querySelector('[data-acao="marcar-lida"]').addEventListener('click', async () => {
+        await supabaseClient.from('sugestoes').update({ lida: true }).eq('id', sug.id);
+        animarRemocaoCard(card, lista, vazio);
+        atualizarFilaModeracaoBadge();
+      });
+      lista.appendChild(card);
+    });
+  }
+
+  atualizarFilaModeracaoBadge();
+}
+
+function animarRemocaoCard(card, lista, vazio) {
+  card.style.transition = 'opacity 0.3s';
+  card.style.opacity = '0';
+  setTimeout(() => {
+    card.remove();
+    // Remove cabeçalhos de seção vazios
+    lista.querySelectorAll('.gear-section-label').forEach(h => {
+      const next = h.parentElement?.nextElementSibling;
+      if (!next || next.classList?.contains('gear-section-label')) h.parentElement?.remove();
+    });
+    if (lista.querySelectorAll('[style*="border"]').length === 0) {
+      vazio.style.display = 'block';
+    }
+  }, 300);
+}
+
+async function moderarFoto(id, novoStatus, card, removerPonto = false) {
+  await supabaseClient.from('registros').update({ foto_status: novoStatus }).eq('id', id);
+
+  // Atualiza o marcador no mapa
+  const item = markers.find(m => m.id === id);
+  if (item) {
+    item.marker._registroData.foto_status = novoStatus;
+    const cor = catColors[item.marker._registroData.categoria] || '#999';
+    item.marker.setIcon(makeIcon(cor, item.marker._registroData.denunciado, false));
+    item.marker.setPopupContent(montarPopup(item.marker._registroData));
+  }
+
+  if (removerPonto) {
+    await supabaseClient.from('registros').delete().eq('id', id);
+    const idx = markers.findIndex(m => m.id === id);
+    if (idx !== -1) { markers[idx].marker.remove(); markers.splice(idx, 1); updateCounter(); }
+  }
+
+  const lista = document.getElementById('moderacao-lista');
+  const vazio = document.getElementById('moderacao-vazio');
+  animarRemocaoCard(card, lista, vazio);
+  atualizarFilaModeracaoBadge();
+}
+
+// ============================================================
+// 9e. MEUS ENVIOS — ESTADO E CONTAGEM DE OCORRÊNCIAS
+// ============================================================
+// meusEnvios: array de objetos { id, categoria, descricao, lat, lng,
+//   fotoStatus: null|'analise'|'aprovada'|'reprovada_dados'|'reprovada_qualidade'|'reprovada_impr',
+//   pontoAtivo: true|false }
+let meusEnvios = JSON.parse(localStorage.getItem('meus_envios') || '[]');
+let ocorrenciasImproprias = parseInt(localStorage.getItem('ocorrencias_improprias') || '0');
+
+function salvarMeusEnvios() {
+  localStorage.setItem('meus_envios', JSON.stringify(meusEnvios));
+}
+
+function novosStatusNaoVistos() {
+  return meusEnvios.filter(e => e.statusNovo).length;
+}
+
+function atualizarBadgeGear() {
+  const qtd = novosStatusNaoVistos();
+  const badge = document.getElementById('badge-gear');
+  if (qtd > 0) {
+    badge.classList.add('visivel');
+    badge.textContent = qtd > 9 ? '9+' : qtd;
+    const badgeMenu = document.getElementById('badge-meus-envios');
+    badgeMenu.style.display = 'inline-block';
+    badgeMenu.textContent   = qtd;
+  } else {
+    badge.classList.remove('visivel');
+    document.getElementById('badge-meus-envios').style.display = 'none';
+  }
+}
+
+// Ao carregar, busca status atualizado dos envios no Supabase
+async function sincronizarMeusEnvios() {
+  if (meusEnvios.length === 0) return;
+  const ids = meusEnvios.map(e => e.id);
+  const { data, error } = await supabaseClient
+    .from('registros').select('id, foto_status, foto_url').in('id', ids);
+  if (error || !data) return;
+
+  let houve_mudanca = false;
+  meusEnvios.forEach(envio => {
+    const remoto = data.find(r => r.id === envio.id);
+    if (!remoto) {
+      // ponto foi excluído (removido por conteúdo impróprio ou pelo próprio usuário)
+      if (envio.pontoAtivo) {
+        envio.pontoAtivo = false;
+        envio.statusNovo = true;
+        houve_mudanca = true;
+      }
+      return;
+    }
+    const novoStatus = remoto.foto_status || null;
+    if (novoStatus !== envio.fotoStatus) {
+      envio.fotoStatusAnterior = envio.fotoStatus;
+      envio.fotoStatus = novoStatus;
+      envio.statusNovo = true;
+      houve_mudanca = true;
+    }
+  });
+  if (houve_mudanca) {
+    salvarMeusEnvios();
+    atualizarBadgeGear();
+  }
+}
+
+function renderizarMeusEnvios() {
+  const lista  = document.getElementById('meus-envios-lista');
+  const vazio  = document.getElementById('meus-envios-vazio');
+  const aviso  = document.getElementById('meus-envios-aviso');
+  lista.innerHTML = '';
+
+  // Aviso de ocorrências impróprias
+  if (ocorrenciasImproprias >= 1) {
+    const faltam = 5 - ocorrenciasImproprias;
+    aviso.style.display = 'block';
+    if (faltam > 0) {
+      aviso.textContent = `⚠ Uma foto sua foi removida por conteúdo incompatível. `
+        + `Mais ${faltam} ocorrência${faltam > 1 ? 's' : ''} resultará em banimento da plataforma.`;
+    } else {
+      aviso.textContent = `⚠ Sua conta foi suspensa por envio repetido de conteúdo incompatível.`;
+    }
+  } else {
+    aviso.style.display = 'none';
+  }
+
+  if (meusEnvios.length === 0) {
+    vazio.style.display = 'block';
+    return;
+  }
+  vazio.style.display = 'none';
+
+  // Marca todos como vistos ao renderizar
+  let houve = false;
+  meusEnvios.forEach(e => { if (e.statusNovo) { e.statusNovo = false; houve = true; } });
+  if (houve) { salvarMeusEnvios(); atualizarBadgeGear(); }
+
+  meusEnvios.forEach(envio => {
+    const card = document.createElement('div');
+    const removido = !envio.pontoAtivo;
+    card.className = 'envio-card' + (removido ? ' removido' : '');
+
+    // Status do ponto
+    const pilulaPonto = removido
+      ? `<span class="envio-status-pill removido">removido</span>`
+      : `<span class="envio-status-pill ativo">no mapa</span>`;
+
+    // Status da foto
+    let fotoHtml = '';
+    const fs = envio.fotoStatus;
+    if (!envio.temFoto) {
+      fotoHtml = '';
+    } else if (!fs || fs === 'analise') {
+      fotoHtml = `<div class="envio-foto-status analise">⏳ Foto em análise</div>`;
+    } else if (fs === 'aprovada') {
+      fotoHtml = `<div class="envio-foto-status aprovada">✓ Foto aprovada e visível</div>`;
+    } else if (fs === 'reprovada_dados') {
+      fotoHtml = `<div class="envio-foto-status reprovada">✕ Foto removida · dados pessoais</div>`;
+    } else if (fs === 'reprovada_qualidade') {
+      fotoHtml = `<div class="envio-foto-status reprovada">✕ Foto removida · qualidade insuficiente
+        <button class="envio-reenviar" onclick="abrirReenvioFoto('${envio.id}')">Reenviar</button>
+      </div>`;
+    } else if (fs === 'reprovada_impr') {
+      fotoHtml = `<div class="envio-foto-status reprovada">✕ Foto e ponto removidos · conteúdo incompatível</div>`;
+    }
+
+    // Link ver no mapa (só se ponto ativo)
+    const verMapa = !removido
+      ? `<span class="envio-ver-mapa">🔍 ver no mapa</span>`
+      : '';
+
+    card.innerHTML = `
+      <div class="envio-card-titulo">
+        <span>${catLabels[envio.categoria] || envio.categoria}${envio.descricao ? ' — ' + envio.descricao.substring(0,30) + (envio.descricao.length > 30 ? '…' : '') : ''}</span>
+        ${pilulaPonto}
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;">
+        ${fotoHtml}
+        ${verMapa}
+      </div>
+    `;
+
+    if (!removido) {
+      card.addEventListener('click', (e) => {
+        if (e.target.classList.contains('envio-reenviar')) return;
+        document.getElementById('modal-meus-envios').classList.remove('open');
+        gearDropdown.style.display = 'none';
+        map.setView([envio.lat, envio.lng], 17, { animate: true });
+        // Abre popup do marcador correspondente
+        const item = markers.find(m => m.id === envio.id);
+        if (item) { item.marker.openPopup(); }
+      });
+    }
+
+    lista.appendChild(card);
+  });
+}
+
+window.abrirReenvioFoto = function(id) {
+  document.getElementById('modal-meus-envios').classList.remove('open');
+  alert('Funcionalidade de reenvio de foto: abre o ponto no mapa para nova foto.'); // placeholder
+};
 
 // ============================================================
 // 10. CAMPOS EXTRAS DE ALAGAMENTO
@@ -271,26 +737,29 @@ function lerDanosAlagamento() {
 // 11. ADICIONAR MARCADOR
 // ============================================================
 function adicionarMarcador({ id, lat, lng, categoria, descricao, autor_token,
-    alag_intensidade, alag_caracteristica, alag_danos, denuncias, denunciasTokens }) {
+    alag_intensidade, alag_caracteristica, alag_danos, denuncias, denunciasTokens,
+    foto_url, foto_status }) {
 
   const tokens = Array.isArray(denunciasTokens) ? denunciasTokens
                : Array.isArray(denuncias)        ? denuncias
                : [];
   const qtd = tokens.length;
-  const denunciado = qtd > 0;
+  const denunciado   = qtd > 0;
+  const fotoPendente = foto_status === 'analise';
   const cor = catColors[categoria] || '#999';
 
-  const marker = L.marker([lat, lng], { icon: makeIcon(cor, denunciado) });
+  const marker = L.marker([lat, lng], { icon: makeIcon(cor, denunciado, fotoPendente) });
 
   marker._registroData = {
     id, lat, lng, categoria, descricao, autor_token,
     alag_intensidade, alag_caracteristica, alag_danos,
-    denuncias: qtd, denunciasTokens: tokens, denunciado
+    denuncias: qtd, denunciasTokens: tokens, denunciado,
+    foto_url: foto_url || null, foto_status: foto_status || null
   };
   marker.bindPopup(montarPopup(marker._registroData));
 
   clusterGroup.addLayer(marker);
-  markers.push({ marker, cat: categoria, id, autorToken: autor_token, denunciado });
+  markers.push({ marker, cat: categoria, id, autorToken: autor_token, denunciado, fotoPendente });
   updateCounter();
 }
 
@@ -361,6 +830,12 @@ function montarPopup(data) {
     <strong>${catLabels[data.categoria] || data.categoria}</strong>
     ${extras}
     ${data.descricao ? `<p style="margin:4px 0 0">${data.descricao}</p>` : ''}
+    ${data.foto_url && data.foto_status === 'aprovada'
+      ? `<img src="${data.foto_url}" style="margin-top:8px;width:100%;max-height:120px;object-fit:cover;border-radius:5px;display:block;" />`
+      : ''}
+    ${adminLogado && data.foto_status === 'analise'
+      ? `<div style="margin-top:6px;"><span style="display:inline-block;padding:2px 8px;background:#d69600;color:white;border-radius:10px;font-size:10px;font-weight:600;">📷 Foto aguardando aprovação</span></div>`
+      : ''}
     ${badgeDenuncias}
     <div style="display:flex;flex-wrap:wrap;gap:0;">${btnExcluir}${btnDenunciar}${btnIgnorarDenuncia}</div>
   `;
@@ -374,7 +849,8 @@ function atualizarTodosPopups() {
     if (!marker._registroData) return;
     const d = marker._registroData;
     const cor = catColors[d.categoria] || '#999';
-    marker.setIcon(makeIcon(cor, d.denunciado));
+    const fotoPendente = d.foto_status === 'analise';
+    marker.setIcon(makeIcon(cor, d.denunciado, fotoPendente));
     marker.setPopupContent(montarPopup(d));
   });
 }
@@ -429,7 +905,7 @@ window.denunciarPonto = async function(id) {
   item.denunciado = d.denunciado;
 
   const cor = catColors[d.categoria] || '#999';
-  item.marker.setIcon(makeIcon(cor, adminLogado && d.denunciado));
+  item.marker.setIcon(makeIcon(cor, adminLogado && d.denunciado, d.foto_status === 'analise'));
   item.marker.setPopupContent(montarPopup(d));
   item.marker.closePopup();
   item.marker.openPopup();
@@ -454,7 +930,7 @@ window.ignorarDenuncias = async function(id) {
   item.denunciado = false;
 
   const cor = catColors[d.categoria] || '#999';
-  item.marker.setIcon(makeIcon(cor, false));
+  item.marker.setIcon(makeIcon(cor, false, d.foto_status === 'analise'));
   item.marker.setPopupContent(montarPopup(d));
   item.marker.closePopup();
   item.marker.openPopup();
@@ -484,6 +960,7 @@ map.on('click', function(e) {
   document.getElementById('desc-input').value = '';
   document.getElementById('alagamento-fields').style.display = 'none';
   limparCamposAlagamento();
+  limparFoto();
   document.getElementById('modal').classList.add('open');
 });
 
@@ -498,13 +975,19 @@ document.getElementById('btn-save').onclick = async function() {
   const desc = document.getElementById('desc-input').value.trim();
   if (!cat) return alert('Selecione uma categoria!');
 
+  if (ocorrenciasImproprias >= 5) {
+    alert('Sua conta está suspensa por envio repetido de conteúdo incompatível.');
+    return;
+  }
+
   this.disabled = true;
   this.textContent = 'Salvando...';
 
   const novoRegistro = {
     lat: pendingLatLng.lat, lng: pendingLatLng.lng,
     categoria: cat, descricao: desc || null,
-    autor_token: meuToken, denuncias: []
+    autor_token: meuToken, denuncias: [],
+    foto_status: null, foto_url: null
   };
 
   if (cat === 'alagamento') {
@@ -516,13 +999,53 @@ document.getElementById('btn-save').onclick = async function() {
   const { data, error } = await supabaseClient
     .from('registros').insert(novoRegistro).select().single();
 
+  if (error) {
+    this.disabled = false;
+    this.textContent = 'Salvar';
+    alert('Erro ao salvar: ' + error.message);
+    return;
+  }
+
+  let temFoto = false;
+  if (fotoArquivo) {
+    temFoto = true;
+    this.textContent = 'Enviando foto...';
+    const ext  = fotoArquivo.name.split('.').pop();
+    const path = `fotos/${data.id}.${ext}`;
+    const { error: errUp } = await supabaseClient.storage
+      .from('registros-fotos').upload(path, fotoArquivo, { upsert: true });
+    if (!errUp) {
+      const { data: urlData } = supabaseClient.storage
+        .from('registros-fotos').getPublicUrl(path);
+      await supabaseClient.from('registros').update({
+        foto_url: urlData.publicUrl,
+        foto_status: 'analise'
+      }).eq('id', data.id);
+      data.foto_status = 'analise';
+      data.foto_url    = urlData.publicUrl;
+    }
+  }
+
   this.disabled = false;
   this.textContent = 'Salvar';
 
-  if (error) { alert('Erro ao salvar: ' + error.message); return; }
+  meusEnvios.unshift({
+    id: data.id,
+    categoria: cat,
+    descricao: desc || null,
+    lat: pendingLatLng.lat,
+    lng: pendingLatLng.lng,
+    temFoto,
+    fotoStatus: data.foto_status || null,
+    pontoAtivo: true,
+    statusNovo: false
+  });
+  salvarMeusEnvios();
+  atualizarBadgeGear();
 
   adicionarMarcador({ ...data, denuncias: [], denunciasTokens: [] });
   document.getElementById('modal').classList.remove('open');
+  limparFoto();
 };
 
 // ============================================================
@@ -585,6 +1108,34 @@ document.getElementById('btn-menu-sugestoes').addEventListener('click', () => {
   document.getElementById('sugestao-erro').style.display = 'none';
   document.getElementById('sugestao-ok').style.display = 'none';
   document.getElementById('modal-sugestoes').classList.add('open');
+});
+
+document.getElementById('btn-menu-moderacao').addEventListener('click', () => {
+  gearDropdown.style.display = 'none';
+  carregarFilaModeracao();
+  document.getElementById('modal-moderacao').classList.add('open');
+});
+
+document.getElementById('btn-moderacao-fechar').addEventListener('click', () => {
+  document.getElementById('modal-moderacao').classList.remove('open');
+});
+
+document.getElementById('modal-moderacao').addEventListener('click', function(e) {
+  if (e.target === this) this.classList.remove('open');
+});
+
+document.getElementById('btn-menu-meus-envios').addEventListener('click', () => {
+  gearDropdown.style.display = 'none';
+  renderizarMeusEnvios();
+  document.getElementById('modal-meus-envios').classList.add('open');
+});
+
+document.getElementById('btn-meus-envios-fechar').addEventListener('click', () => {
+  document.getElementById('modal-meus-envios').classList.remove('open');
+});
+
+document.getElementById('modal-meus-envios').addEventListener('click', function(e) {
+  if (e.target === this) this.classList.remove('open');
 });
 
 // ============================================================
@@ -686,9 +1237,12 @@ document.getElementById('btn-admin-entrar').addEventListener('click', async func
 
   adminLogado = true;
   document.getElementById('modal-admin').classList.remove('open');
-  document.getElementById('btn-admin-login').style.display = 'none';
-  document.getElementById('admin-status').style.display = 'flex';
-  document.getElementById('admin-email-label').textContent = data.user.email;
+  // engrenagem permanece visível — só esconde o item Login e mostra o email+sair dentro do dropdown
+  document.getElementById('btn-menu-login').style.display = 'none';
+  document.getElementById('dropdown-admin-logado').style.display = 'block';
+  document.getElementById('dropdown-admin-email').textContent = data.user.email;
+  document.getElementById('gear-admin-section').style.display = 'block';
+  atualizarFilaModeracaoBadge();
   atualizarTodosPopups();
 });
 
@@ -698,8 +1252,9 @@ document.getElementById('btn-admin-entrar').addEventListener('click', async func
 document.getElementById('btn-logout').addEventListener('click', async () => {
   await supabaseClient.auth.signOut();
   adminLogado = false;
-  document.getElementById('btn-admin-login').style.display = 'inline-block';
-  document.getElementById('admin-status').style.display = 'none';
+  document.getElementById('btn-menu-login').style.display = 'block';
+  document.getElementById('dropdown-admin-logado').style.display = 'none';
+  document.getElementById('gear-admin-section').style.display = 'none';
   atualizarTodosPopups();
 });
 
@@ -709,9 +1264,11 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
 supabaseClient.auth.getSession().then(({ data }) => {
   if (data.session) {
     adminLogado = true;
-    document.getElementById('btn-admin-login').style.display = 'none';
-    document.getElementById('admin-status').style.display = 'flex';
-    document.getElementById('admin-email-label').textContent = data.session.user.email;
+    document.getElementById('btn-menu-login').style.display = 'none';
+    document.getElementById('dropdown-admin-logado').style.display = 'block';
+    document.getElementById('dropdown-admin-email').textContent = data.session.user.email;
+    document.getElementById('gear-admin-section').style.display = 'block';
+    atualizarFilaModeracaoBadge();
   }
 });
 
@@ -719,3 +1276,33 @@ supabaseClient.auth.getSession().then(({ data }) => {
 // 25. INICIAR
 // ============================================================
 carregarRegistros();
+sincronizarMeusEnvios();
+atualizarBadgeGear();
+
+// Escuta mudanças de foto_status em tempo real para pontos do usuário
+supabaseClient
+  .channel('foto-status-updates')
+  .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'registros' }, (payload) => {
+    const novo = payload.new;
+    const envio = meusEnvios.find(e => e.id === novo.id);
+    if (!envio) return;
+
+    const statusAnterior = envio.fotoStatus;
+    const statusNovo     = novo.foto_status || null;
+
+    if (statusNovo === statusAnterior) return;
+
+    envio.fotoStatus = statusNovo;
+    envio.statusNovo = true;
+
+    // Conteúdo impróprio: ponto removido, registra ocorrência
+    if (statusNovo === 'reprovada_impr') {
+      envio.pontoAtivo = false;
+      ocorrenciasImproprias++;
+      localStorage.setItem('ocorrencias_improprias', ocorrenciasImproprias);
+    }
+
+    salvarMeusEnvios();
+    atualizarBadgeGear();
+  })
+  .subscribe();

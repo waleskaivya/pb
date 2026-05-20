@@ -68,11 +68,26 @@
       <span>Mapeamento Comunitário · Pato Branco, PR</span>
     </div>
     <div id="gear-menu-wrapper">
-      <button id="btn-admin-login" title="Área administrativa">⚙</button>
+      <div style="position:relative;display:inline-block;">
+        <button id="btn-admin-login" title="Área administrativa">⚙</button>
+        <span id="badge-gear" style="display:none;position:absolute;top:-3px;right:-3px;width:14px;height:14px;border-radius:50%;background:#d61616;border:2px solid var(--bg-primary);font-size:9px;font-weight:700;color:white;align-items:center;justify-content:center;pointer-events:none;"></span>
+      </div>
       <div id="gear-dropdown" style="display:none;">
         <div class="gear-section-label">Conta</div>
         <button id="btn-menu-login">Login</button>
+        <div id="dropdown-admin-logado" style="display:none;">
+          <div id="dropdown-admin-email" style="font-size:11px;color:var(--text-secondary);padding:4px 16px 6px;"></div>
+          <button id="btn-logout" style="color:#e53935;">Sair</button>
+        </div>
         <button id="btn-menu-sugestoes">Sugestões</button>
+        <div class="gear-divider"></div>
+        <div class="gear-section-label">Meus registros</div>
+        <button id="btn-menu-meus-envios">Meus envios <span id="badge-meus-envios" style="display:none;background:#d61616;color:white;font-size:10px;font-weight:600;padding:1px 6px;border-radius:10px;margin-left:4px;"></span></button>
+        <div id="gear-admin-section" style="display:none;">
+          <div class="gear-divider"></div>
+          <div class="gear-section-label">Administração</div>
+          <button id="btn-menu-moderacao">Fila de moderação <span id="badge-moderacao" style="display:none;background:#d61616;color:white;font-size:10px;font-weight:600;padding:1px 6px;border-radius:10px;margin-left:4px;"></span></button>
+        </div>
         <div class="gear-divider"></div>
         <div class="gear-section-label">Aparência</div>
         <button id="btn-menu-tema">
@@ -83,10 +98,6 @@
         </button>
       </div>
     </div>
-    <span id="admin-status" style="display:none;">
-      <span id="admin-email-label"></span>
-      <button id="btn-logout">Sair</button>
-    </span>
   </div>
 </header>
 
@@ -196,6 +207,18 @@
     <label>Descrição (opcional)</label>
     <textarea id="desc-input" placeholder="Descreva o problema..."></textarea>
 
+    <label>Foto <span style="color:var(--text-secondary);font-weight:400;">(opcional)</span></label>
+    <div id="foto-upload-area" style="margin-bottom:15px;">
+      <label id="foto-label" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid var(--border-color);border-radius:8px;cursor:pointer;font-size:13px;color:var(--text-secondary);background:var(--bg-surface);transition:border-color 0.2s, color 0.2s, background 0.2s;" onmouseover="this.style.borderColor='#d61616';this.style.color='#d61616';" onmouseout="this.style.borderColor='var(--border-color)';this.style.color='var(--text-secondary)';">
+        <span id="foto-label-texto">Anexar foto</span>
+        <input type="file" id="foto-input" accept="image/*" style="display:none;" />
+      </label>
+      <div id="foto-preview-wrap" style="display:none;margin-top:6px;position:relative;display:none;">
+        <img id="foto-preview" style="max-width:100%;max-height:120px;border-radius:6px;border:1px solid var(--border-color);" />
+        <button id="foto-remover" title="Remover foto" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.55);border:none;color:white;border-radius:50%;width:22px;height:22px;font-size:14px;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;">×</button>
+      </div>
+    </div>
+
     <div class="modal-btns">
       <button class="btn-cancel" id="btn-cancel">Cancelar</button>
       <button class="btn-save" id="btn-save">Salvar</button>
@@ -232,6 +255,31 @@
     <div class="modal-btns">
       <button class="btn-cancel" id="btn-sugestao-cancel">Cancelar</button>
       <button class="btn-save" id="btn-sugestao-enviar">Enviar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Fila de Moderação (admin) -->
+<div class="modal-bg" id="modal-moderacao">
+  <div class="modal" style="width:460px;">
+    <h3>Fila de moderação</h3>
+    <p id="moderacao-vazio" style="display:none;font-size:13px;color:var(--text-secondary);text-align:center;padding:20px 0;">Nenhuma foto aguardando aprovação.</p>
+    <div id="moderacao-lista" style="display:flex;flex-direction:column;gap:10px;max-height:60vh;overflow-y:auto;"></div>
+    <div class="modal-btns" style="margin-top:16px;">
+      <button class="btn-cancel" id="btn-moderacao-fechar">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Meus Envios -->
+<div class="modal-bg" id="modal-meus-envios">
+  <div class="modal" style="width:400px;">
+    <h3>Meus envios</h3>
+    <div id="meus-envios-aviso" style="display:none;background:rgba(214,22,22,0.08);border:1px solid rgba(214,22,22,0.2);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:#900c0c;line-height:1.5;"></div>
+    <div id="meus-envios-lista" style="display:flex;flex-direction:column;gap:8px;max-height:55vh;overflow-y:auto;"></div>
+    <p id="meus-envios-vazio" style="display:none;font-size:13px;color:var(--text-secondary);text-align:center;padding:20px 0;">Você ainda não registrou nenhum ponto.</p>
+    <div class="modal-btns" style="margin-top:16px;">
+      <button class="btn-cancel" id="btn-meus-envios-fechar">Fechar</button>
     </div>
   </div>
 </div>
