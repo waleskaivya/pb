@@ -1014,15 +1014,23 @@ document.getElementById('btn-save').onclick = async function() {
     const path = `fotos/${data.id}.${ext}`;
     const { error: errUp } = await supabaseClient.storage
       .from('registros-fotos').upload(path, fotoArquivo, { upsert: true });
-    if (!errUp) {
+    if (errUp) {
+      console.error('ERRO upload foto:', errUp.message);
+      // Mostra erro visível para diagnóstico
+      alert('Ponto salvo, mas a foto não foi enviada.\nErro: ' + errUp.message + '\n\nVerifique se o bucket "registros-fotos" existe no Supabase Storage.');
+    } else {
       const { data: urlData } = supabaseClient.storage
         .from('registros-fotos').getPublicUrl(path);
-      await supabaseClient.from('registros').update({
+      const { error: errUpdate } = await supabaseClient.from('registros').update({
         foto_url: urlData.publicUrl,
         foto_status: 'analise'
       }).eq('id', data.id);
-      data.foto_status = 'analise';
-      data.foto_url    = urlData.publicUrl;
+      if (errUpdate) {
+        console.error('ERRO ao salvar URL da foto:', errUpdate.message);
+      } else {
+        data.foto_status = 'analise';
+        data.foto_url    = urlData.publicUrl;
+      }
     }
   }
 
