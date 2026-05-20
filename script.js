@@ -633,7 +633,10 @@ function renderizarMeusEnvios() {
     card.innerHTML = `
       <div class="envio-card-titulo">
         <span>${catLabels[envio.categoria] || envio.categoria}${envio.descricao ? ' — ' + envio.descricao.substring(0,30) + (envio.descricao.length > 30 ? '…' : '') : ''}</span>
-        ${pilulaPonto}
+        <div style="display:flex;align-items:center;gap:6px;">
+          ${pilulaPonto}
+          <button class="btn-remover-envio" title="Remover da lista" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:16px;line-height:1;padding:0 2px;flex-shrink:0;transition:color 0.15s;" onmouseover="this.style.color='#d61616'" onmouseout="this.style.color='var(--text-secondary)'">×</button>
+        </div>
       </div>
       <div style="display:flex;align-items:center;gap:4px;">
         ${fotoHtml}
@@ -641,13 +644,27 @@ function renderizarMeusEnvios() {
       </div>
     `;
 
+    card.querySelector('.btn-remover-envio').addEventListener('click', (e) => {
+      e.stopPropagation();
+      meusEnvios = meusEnvios.filter(e2 => e2.id !== envio.id);
+      salvarMeusEnvios();
+      atualizarBadgeGear();
+      card.style.transition = 'opacity 0.2s';
+      card.style.opacity = '0';
+      setTimeout(() => {
+        card.remove();
+        if (lista.children.length === 0) {
+          document.getElementById('meus-envios-vazio').style.display = 'block';
+        }
+      }, 200);
+    });
+
     if (!removido) {
       card.addEventListener('click', (e) => {
-        if (e.target.classList.contains('envio-reenviar')) return;
+        if (e.target.classList.contains('envio-reenviar') || e.target.classList.contains('btn-remover-envio')) return;
         document.getElementById('modal-meus-envios').classList.remove('open');
         gearDropdown.style.display = 'none';
         map.setView([envio.lat, envio.lng], 17, { animate: true });
-        // Abre popup do marcador correspondente
         const item = markers.find(m => m.id === envio.id);
         if (item) { item.marker.openPopup(); }
       });
