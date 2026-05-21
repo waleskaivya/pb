@@ -261,10 +261,10 @@
 
 <!-- MODAL: Fila de Moderação (admin) -->
 <div class="modal-bg" id="modal-moderacao">
-  <div class="modal" style="width:460px;">
+  <div class="modal" style="width:460px;max-height:80vh;overflow-y:auto;">
     <h3>Fila de moderação</h3>
     <p id="moderacao-vazio" style="display:none;font-size:13px;color:var(--text-secondary);text-align:center;padding:20px 0;">Nenhuma foto aguardando aprovação.</p>
-    <div id="moderacao-lista" style="display:flex;flex-direction:column;gap:10px;max-height:60vh;overflow-y:auto;"></div>
+    <div id="moderacao-lista" style="display:flex;flex-direction:column;gap:10px;"></div>
     <div class="modal-btns" style="margin-top:16px;">
       <button class="btn-cancel" id="btn-moderacao-fechar">Fechar</button>
     </div>
