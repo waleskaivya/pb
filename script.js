@@ -220,17 +220,73 @@ const fotoLabel    = document.getElementById('foto-label-texto');
 const fotoRemover  = document.getElementById('foto-remover');
 let   fotoArquivo  = null;
 
-fotoInput.addEventListener('change', function() {
+// Configurações de compressão
+const FOTO_MAX_LARGURA  = 1280;  // px — suficiente para visualização no mapa
+const FOTO_MAX_ALTURA   = 1280;  // px
+const FOTO_QUALIDADE    = 0.82;  // 0-1 — 82% mantém boa qualidade visual
+const FOTO_MAX_BYTES    = 5 * 1024 * 1024; // bloqueia arquivos acima de 5MB antes de processar
+
+function comprimirFoto(file) {
+  return new Promise((resolve, reject) => {
+    if (file.size > FOTO_MAX_BYTES) {
+      reject(new Error(`Foto muito grande (${(file.size/1024/1024).toFixed(1)}MB). Máximo permitido: 5MB.`));
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Erro ao ler o arquivo.'));
+    reader.onload = e => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Arquivo não é uma imagem válida.'));
+      img.onload = () => {
+        // Calcula dimensões mantendo proporção
+        let { width, height } = img;
+        if (width > FOTO_MAX_LARGURA || height > FOTO_MAX_ALTURA) {
+          const ratio = Math.min(FOTO_MAX_LARGURA / width, FOTO_MAX_ALTURA / height);
+          width  = Math.round(width  * ratio);
+          height = Math.round(height * ratio);
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width  = width;
+        canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(blob => {
+          if (!blob) { reject(new Error('Falha na compressão.')); return; }
+          // Cria um File a partir do blob comprimido
+          const compressed = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
+          resolve({ blob: compressed, dataUrl: canvas.toDataURL('image/jpeg', FOTO_QUALIDADE) });
+        }, 'image/jpeg', FOTO_QUALIDADE);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+fotoInput.addEventListener('change', async function() {
   const file = this.files[0];
   if (!file) return;
-  fotoArquivo = file;
-  const reader = new FileReader();
-  reader.onload = e => {
-    fotoPreview.src = e.target.result;
+
+  fotoLabel.textContent = 'Processando...';
+
+  try {
+    const { blob, dataUrl } = await comprimirFoto(file);
+    fotoArquivo = blob;
+    fotoPreview.src = dataUrl;
     fotoWrap.style.display = 'block';
-    fotoLabel.textContent  = '✓ ' + file.name;
-  };
-  reader.readAsDataURL(file);
+
+    const tamanhoOriginal   = (file.size / 1024).toFixed(0);
+    const tamanhoComprimido = (blob.size  / 1024).toFixed(0);
+    fotoLabel.textContent = `✓ ${file.name} (${tamanhoOriginal}KB → ${tamanhoComprimido}KB)`;
+  } catch (err) {
+    fotoArquivo = null;
+    fotoInput.value = '';
+    fotoWrap.style.display = 'none';
+    fotoLabel.textContent = 'Anexar foto';
+    alert(err.message);
+  }
 });
 
 fotoRemover.addEventListener('click', () => {
@@ -326,7 +382,8 @@ async function carregarFilaModeracao() {
         </div>
         <div style="padding:10px 12px;">
           <img src="${reg.foto_url}" alt="Foto para moderação"
-            style="width:100%;max-height:180px;object-fit:cover;border-radius:6px;border:1px solid var(--border-light);display:block;margin-bottom:10px;"
+            style="width:100%;max-height:120px;object-fit:cover;border-radius:6px;border:1px solid var(--border-light);display:block;margin-bottom:10px;cursor:pointer;" title="Clique para ampliar"
+            onclick="this.style.maxHeight = this.style.maxHeight === 'none' ? '120px' : 'none'"
             onerror="this.style.display='none'" />
           <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <button class="btn-save" style="font-size:12px;padding:6px 14px;" data-id="${reg.id}" data-acao="aprovar">Aprovar</button>
