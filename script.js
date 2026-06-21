@@ -761,6 +761,18 @@ function setupSelectOutro(selectId, inputId) {
 setupSelectOutro('select-frequencia',    'frequencia-outro');
 setupSelectOutro('select-caracteristica','caracteristica-outro');
 
+// Checkbox "Não lembro a data" — desativa/limpa o campo de data
+document.getElementById('alag-data-nao-lembro').addEventListener('change', function() {
+  const campoData = document.getElementById('alag-data');
+  if (this.checked) {
+    campoData.value = '';
+    campoData.disabled = true;
+  } else {
+    campoData.disabled = false;
+    campoData.value = getDataBrasiliaISO();
+  }
+});
+
 // Checkbox "outro" de danos — mostra/esconde campo de texto
 document.getElementById('dano-outro-check').addEventListener('change', function() {
   const inp = document.getElementById('origem-outro');
@@ -769,6 +781,12 @@ document.getElementById('dano-outro-check').addEventListener('change', function(
 });
 
 function limparCamposAlagamento() {
+  const campoData = document.getElementById('alag-data');
+  const naoLembro = document.getElementById('alag-data-nao-lembro');
+  naoLembro.checked = false;
+  campoData.disabled = false;
+  campoData.max = getDataBrasiliaISO();
+  campoData.value = getDataBrasiliaISO();
   ['select-frequencia', 'select-caracteristica'].forEach(id => {
     document.getElementById(id).value = '';
   });
@@ -781,6 +799,26 @@ function limparCamposAlagamento() {
   document.querySelectorAll('#checkboxes-danos input[type="checkbox"]').forEach(cb => {
     cb.checked = false;
   });
+}
+
+// Retorna a data atual no horário de Brasília no formato 'YYYY-MM-DD'
+function getDataBrasiliaISO() {
+  const partes = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric', month: '2-digit', day: '2-digit'
+  }).formatToParts(new Date());
+  const ano = partes.find(p => p.type === 'year').value;
+  const mes = partes.find(p => p.type === 'month').value;
+  const dia = partes.find(p => p.type === 'day').value;
+  return `${ano}-${mes}-${dia}`;
+}
+
+// Converte data 'YYYY-MM-DD' para 'DD/MM/YYYY' (mantém texto livre como 'Não lembro')
+function formatarDataBR(dataStr) {
+  if (!dataStr) return '';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dataStr)) return dataStr;
+  const [ano, mes, dia] = dataStr.split('-');
+  return `${dia}/${mes}/${ano}`;
 }
 
 function lerCampoAlagamento(selectId, outroId) {
@@ -811,7 +849,7 @@ function lerDanosAlagamento() {
 // 11. ADICIONAR MARCADOR
 // ============================================================
 function adicionarMarcador({ id, lat, lng, categoria, descricao, autor_token,
-    alag_intensidade, alag_caracteristica, alag_danos, denuncias, denunciasTokens,
+    alag_intensidade, alag_caracteristica, alag_danos, alag_data, denuncias, denunciasTokens,
     foto_url, foto_status }) {
 
   const tokens = Array.isArray(denunciasTokens) ? denunciasTokens
@@ -826,7 +864,7 @@ function adicionarMarcador({ id, lat, lng, categoria, descricao, autor_token,
 
   marker._registroData = {
     id, lat, lng, categoria, descricao, autor_token,
-    alag_intensidade, alag_caracteristica, alag_danos,
+    alag_intensidade, alag_caracteristica, alag_danos, alag_data,
     denuncias: qtd, denunciasTokens: tokens, denunciado,
     foto_url: foto_url || null, foto_status: foto_status || null
   };
@@ -890,6 +928,7 @@ function montarPopup(data) {
 
   let extras = '';
   if (data.categoria === 'alagamento') {
+    if (data.alag_data) extras += `<p style="margin:4px 0 0"><strong>Quando ocorreu:</strong> ${formatarDataBR(data.alag_data)}</p>`;
     if (data.alag_intensidade)    extras += `<p style="margin:4px 0 0"><strong>Intensidade:</strong> ${data.alag_intensidade}</p>`;
     if (data.alag_caracteristica) extras += `<p style="margin:4px 0 0"><strong>Características:</strong> ${data.alag_caracteristica}</p>`;
     if (data.alag_danos) {
@@ -1065,6 +1104,9 @@ document.getElementById('btn-save').onclick = async function() {
   };
 
   if (cat === 'alagamento') {
+    novoRegistro.alag_data           = document.getElementById('alag-data-nao-lembro').checked
+                                          ? 'Não lembro'
+                                          : (document.getElementById('alag-data').value || null);
     novoRegistro.alag_intensidade    = lerCampoAlagamento('select-frequencia',    'frequencia-outro');
     novoRegistro.alag_caracteristica = lerCampoAlagamento('select-caracteristica','caracteristica-outro');
     novoRegistro.alag_danos          = lerDanosAlagamento();
