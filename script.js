@@ -932,7 +932,11 @@ function montarPopup(data) {
     if (data.alag_intensidade)    extras += `<p style="margin:4px 0 0"><strong>Intensidade:</strong> ${data.alag_intensidade}</p>`;
     if (data.alag_caracteristica) extras += `<p style="margin:4px 0 0"><strong>Características:</strong> ${data.alag_caracteristica}</p>`;
     if (data.alag_danos) {
-      const danos = Array.isArray(data.alag_danos) ? data.alag_danos : [data.alag_danos];
+      let danos = data.alag_danos;
+      if (typeof danos === 'string') {
+        try { danos = JSON.parse(danos); } catch (e) { danos = [danos]; }
+      }
+      if (!Array.isArray(danos)) danos = [danos];
       if (danos.length > 0) {
         extras += `<p style="margin:4px 0 0"><strong>Danos:</strong> ${danos.join(', ')}</p>`;
       }
