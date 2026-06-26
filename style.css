@@ -766,3 +766,8 @@ footer {
 
   .toolbar { padding: 6px 12px; gap: 5px; }
 }
+.texto-destaque {
+  background-color: rgba(229, 57, 53, 0.3);
+  padding: 1px 2px;
+  border-radius: 3px;
+}

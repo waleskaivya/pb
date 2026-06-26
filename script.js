@@ -133,33 +133,33 @@ function makeIcon(color, denunciado, fotoPendente) {
     return L.divIcon({
       className: '',
       html: `<div style="
-        width:18px;height:18px;border-radius:50%;
-        background:#e53935;border:2px solid white;
-        box-shadow:0 0 0 3px rgba(229,57,53,0.35),0 1px 5px rgba(0,0,0,0.35);
+        width:27px;height:27px;border-radius:50%;
+        background:#e53935;border:3px solid white;
+        box-shadow:0 0 0 5px rgba(229,57,53,0.35),0 1px 5px rgba(0,0,0,0.35);
         animation:pulso 1.5s ease-in-out infinite;
       "></div>`,
-      iconSize: [18, 18],
-      iconAnchor: [9, 9]
+      iconSize: [27, 27],
+      iconAnchor: [13.5, 13.5]
     });
   }
   if (fotoPendente && adminLogado) {
     return L.divIcon({
       className: '',
       html: `<div style="
-        width:18px;height:18px;border-radius:50%;
-        background:${color};border:2px solid white;
-        box-shadow:0 0 0 3px rgba(214,150,0,0.45),0 1px 5px rgba(0,0,0,0.35);
+        width:27px;height:27px;border-radius:50%;
+        background:${color};border:3px solid white;
+        box-shadow:0 0 0 5px rgba(214,150,0,0.45),0 1px 5px rgba(0,0,0,0.35);
         animation:pulso 1.5s ease-in-out infinite;
       "></div>`,
-      iconSize: [18, 18],
-      iconAnchor: [9, 9]
+      iconSize: [27, 27],
+      iconAnchor: [13.5, 13.5]
     });
   }
   return L.divIcon({
     className: '',
-    html: `<div style="width:16px;height:16px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 5px rgba(0,0,0,0.35);"></div>`,
-    iconSize: [16, 16],
-    iconAnchor: [8, 8]
+    html: `<div style="width:24px;height:24px;border-radius:50%;background:${color};border:3px solid white;box-shadow:0 1px 5px rgba(0,0,0,0.35);"></div>`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12]
   });
 }
 
