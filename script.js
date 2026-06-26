@@ -182,7 +182,6 @@ function fecharBoasVindas(viaOK) {
   mostrarHintInstrucao();
 }
 
-document.getElementById('btn-fechar-sobre').addEventListener('click', () => fecharBoasVindas(false));
 document.getElementById('btn-fechar-sobre-ok').addEventListener('click', () => fecharBoasVindas(true));
 document.getElementById('modal-sobre').addEventListener('click', function(e) {
   if (e.target === this) fecharBoasVindas(false);
