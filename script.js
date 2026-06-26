@@ -782,10 +782,10 @@ document.getElementById('dano-outro-check').addEventListener('change', function(
 function limparCamposAlagamento() {
   const campoData = document.getElementById('alag-data');
   const naoLembro = document.getElementById('alag-data-nao-lembro');
-  naoLembro.checked = false;
-  campoData.disabled = false;
+  naoLembro.checked = true;
+  campoData.disabled = true;
   campoData.max = getDataBrasiliaISO();
-  campoData.value = getDataBrasiliaISO();
+  campoData.value = '';
   ['select-frequencia', 'select-caracteristica'].forEach(id => {
     document.getElementById(id).value = '';
   });
