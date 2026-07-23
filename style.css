@@ -623,6 +623,33 @@ footer {
   line-height: 1.5;
 }
 
+/* Quando o relato é grande, o Leaflet limita a altura (via opção maxHeight
+   passada em bindPopup) e ativa esta classe automaticamente, criando um
+   scroll SÓ no conteúdo. O botão de fechar "X" fica fora dessa área,
+   então continua sempre visível e clicável. */
+.leaflet-popup-scrolled {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Deixa claro pro usuário que dá pra rolar (barra de rolagem fina) */
+.leaflet-popup-content-wrapper .leaflet-popup-content::-webkit-scrollbar {
+  width: 5px;
+}
+.leaflet-popup-content-wrapper .leaflet-popup-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 3px;
+}
+[data-theme="dark"] .leaflet-popup-content-wrapper .leaflet-popup-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Garante que o botão de fechar (X) fique sempre visível, acima do
+   conteúdo, mesmo com o scroll ativo */
+.leaflet-popup-close-button {
+  z-index: 2;
+}
+
 /* Esconde a legenda enquanto um popup estiver aberto em mobile */
 @media (max-width: 480px) {
   .leaflet-popup-open .legend {

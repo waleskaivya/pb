@@ -867,11 +867,38 @@ function adicionarMarcador({ id, lat, lng, categoria, descricao, autor_token,
     denuncias: qtd, denunciasTokens: tokens, denunciado,
     foto_url: foto_url || null, foto_status: foto_status || null
   };
-  marker.bindPopup(montarPopup(marker._registroData));
+  marker.bindPopup(montarPopup(marker._registroData), popupOptions());
 
   clusterGroup.addLayer(marker);
   markers.push({ marker, cat: categoria, id, autorToken: autor_token, denunciado, fotoPendente });
   updateCounter();
+}
+
+// ============================================================
+// 11.1 OPÇÕES DO POPUP — evita que o popup fique maior que a tela
+// ============================================================
+// Em telas pequenas, um relato longo (descrição + foto + botões) pode ficar
+// mais alto que a área visível do mapa. Quando isso acontece, o Leaflet não
+// consegue "autoPan" o popup inteiro para dentro da tela e a parte de cima
+// (com o botão de fechar "X") some atrás do cabeçalho.
+//
+// A solução: limitar a altura do popup ao espaço realmente disponível no
+// mapa e deixar o CONTEÚDO rolar internamente (scroll). O cabeçalho do
+// popup e o botão "X" ficam fora dessa área de rolagem, então nunca somem.
+function popupOptions() {
+  const mapEl = document.getElementById('map-container');
+  const alturaDisponivel = mapEl ? mapEl.clientHeight : window.innerHeight;
+
+  // Reserva uma margem de segurança (attribution do Leaflet, bordas, etc.)
+  const maxHeight = Math.max(160, Math.round(alturaDisponivel * 0.75) - 40);
+
+  return {
+    maxWidth: 260,
+    maxHeight,               // ativa o scroll interno nativo do Leaflet
+    autoPan: true,
+    autoPanPadding: [16, 16],
+    keepInView: true
+  };
 }
 
 // ============================================================
