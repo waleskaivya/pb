@@ -164,7 +164,10 @@ function makeIcon(color, denunciado, fotoPendente) {
 }
 
 function updateCounter() {
-  document.getElementById('counter').textContent = `${markers.length} registros no mapa`;
+  const total = filtroAtivo === 'todos'
+    ? markers.length
+    : markers.filter(m => m.cat === filtroAtivo).length;
+  document.getElementById('counter').textContent = `${total} registros no mapa`;
 }
 
 // ============================================================
@@ -1224,6 +1227,12 @@ document.querySelectorAll('.cat-btn').forEach(btn => {
         clusterGroup.addLayer(m.marker);
       }
     });
+
+    // Legenda só aparece quando o filtro "Todos" está ativo
+    legendDiv.style.display = filtroAtivo === 'todos' ? '' : 'none';
+
+    // Contador reflete apenas os registros da categoria filtrada
+    updateCounter();
   });
 });
 
