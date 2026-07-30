@@ -126,6 +126,14 @@
   <div class="legend" id="map-legend">
     <strong>Categorias</strong>
   </div>
+  <div class="legend" id="heat-legend" style="display:none;">
+    <strong>Densidade de registros</strong>
+    <div class="heat-legend-bar-wrap">
+      <span class="heat-legend-label">Baixa</span>
+      <div class="heat-legend-bar"></div>
+      <span class="heat-legend-label">Alta</span>
+    </div>
+  </div>
 </div>
 
 <div class="counter" id="counter">0 registros no mapa</div>
@@ -291,6 +299,7 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="script.js"></script>
 

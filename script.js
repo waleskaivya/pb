@@ -99,6 +99,8 @@ document.getElementById('legend-title').addEventListener('click', () => {
 let markers = [];
 let pendingLatLng = null;
 let filtroAtivo = 'todos';
+let heatAtivo = false;
+let heatLayer = null;
 
 // Cluster group — agrupa marcadores próximos com círculo numérico
 const clusterGroup = L.markerClusterGroup({
@@ -168,7 +170,88 @@ function updateCounter() {
     ? markers.length
     : markers.filter(m => m.cat === filtroAtivo).length;
   document.getElementById('counter').textContent = `${total} registros no mapa`;
+
+  if (heatAtivo) atualizarHeatmap();
 }
+
+// ============================================================
+// 7B. MAPA DE CALOR POR DENSIDADE
+// ============================================================
+function pontosParaHeatmap() {
+  return markers
+    .filter(m => filtroAtivo === 'todos' || m.cat === filtroAtivo)
+    .map(m => {
+      const ll = m.marker.getLatLng();
+      return [ll.lat, ll.lng, 0.6];
+    });
+}
+
+function atualizarHeatmap() {
+  if (!heatLayer || !map.hasLayer(heatLayer)) return;
+  heatLayer.setLatLngs(pontosParaHeatmap());
+}
+
+function criarHeatLayerSeNecessario() {
+  if (!heatLayer) {
+    heatLayer = L.heatLayer([], {
+      radius: 14,
+      blur: 11,
+      maxZoom: 17,
+      minOpacity: 0.35,
+      gradient: {
+        0.0:  '#2f6fd6',
+        0.45: '#2f6fd6',
+        0.6:  '#4fb8c9',
+        0.78: '#7fc94a',
+        0.9:  '#f0a324',
+        1.0:  '#e6432f'
+      }
+    });
+  }
+  return heatLayer;
+}
+
+function toggleHeatmap() {
+  heatAtivo = !heatAtivo;
+  const btn = document.getElementById('btn-heat-toggle');
+
+  if (heatAtivo) {
+    criarHeatLayerSeNecessario();
+    if (map.hasLayer(clusterGroup)) map.removeLayer(clusterGroup);
+    heatLayer.addTo(map);
+    heatLayer.setLatLngs(pontosParaHeatmap());
+    legendDiv.style.display = 'none';
+    document.getElementById('heat-legend').style.display = 'block';
+    btn.classList.add('active');
+    btn.title = 'Ver registros individuais';
+  } else {
+    if (heatLayer && map.hasLayer(heatLayer)) map.removeLayer(heatLayer);
+    clusterGroup.addTo(map);
+    legendDiv.style.display = filtroAtivo === 'todos' ? '' : 'none';
+    document.getElementById('heat-legend').style.display = 'none';
+    btn.classList.remove('active');
+    btn.title = 'Ver mapa de calor por densidade';
+  }
+}
+
+const HeatToggleControl = L.Control.extend({
+  options: { position: 'topleft' },
+  onAdd: function() {
+    const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control heat-toggle-control');
+    const btn = L.DomUtil.create('a', '', container);
+    btn.href = '#';
+    btn.id = 'btn-heat-toggle';
+    btn.title = 'Ver mapa de calor por densidade';
+    btn.innerHTML = '<span aria-hidden="true">🔥</span>';
+    L.DomEvent.disableClickPropagation(container);
+    L.DomEvent.on(btn, 'click', function(e) {
+      L.DomEvent.stop(e);
+      toggleHeatmap();
+    });
+    return container;
+  }
+});
+map.addControl(new HeatToggleControl());
 
 // ============================================================
 // 8. FLUXO DE BOAS-VINDAS
@@ -1228,10 +1311,10 @@ document.querySelectorAll('.cat-btn').forEach(btn => {
       }
     });
 
-    // Legenda só aparece quando o filtro "Todos" está ativo
-    legendDiv.style.display = filtroAtivo === 'todos' ? '' : 'none';
+    // Legenda só aparece quando o filtro "Todos" está ativo e fora do modo mapa de calor
+    legendDiv.style.display = (filtroAtivo === 'todos' && !heatAtivo) ? '' : 'none';
 
-    // Contador reflete apenas os registros da categoria filtrada
+    // Contador reflete apenas os registros da categoria filtrada (e sincroniza o heatmap, se ativo)
     updateCounter();
   });
 });
