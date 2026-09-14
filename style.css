@@ -482,6 +482,18 @@ footer {
 
 .modal-sobre-conteudo p:last-of-type {
   margin-bottom: 18px;
+  font-size: 11px;
+  color: #4b4b4b;
+}
+
+.sobre-imagem-placeholder {
+  margin-bottom: 14px;
+}
+
+.sobre-imagem-placeholder img {
+  display: block;
+  width: 100%;
+  border-radius: 8px;
 }
 
 .btn-fechar-sobre {
