@@ -102,17 +102,13 @@
 </header>
 
 <div class="toolbar">
-  <label>Filtrar:</label>
-  <button class="cat-btn active" data-cat="todos">Todos</button>
-  <button class="cat-btn" data-cat="alagamento">Alagamento</button>
-  <button class="cat-btn" data-cat="pavimentacao">Pavimentação</button>
-  <button class="cat-btn" data-cat="calcada">Calçada</button>
-  <button class="cat-btn" data-cat="iluminacao">Iluminação</button>
-  <button class="cat-btn" data-cat="acessibilidade">Acessibilidade</button>
-  <button class="cat-btn" data-cat="lixo">Lixo</button>
-  <button class="cat-btn" data-cat="sinalizacao">Sinalização</button>
-  <button class="cat-btn" data-cat="meio_ambiente">Meio Ambiente</button>
-  <button class="cat-btn" data-cat="imovel_abandonado">Imóvel Abandonado</button>
+  <div class="cat-filter-wrapper" id="cat-filter-wrapper">
+    <button type="button" class="cat-filter-toggle" id="cat-filter-toggle">
+      <span id="cat-filter-label">CATEGORIA: Todos</span>
+      <span class="cat-filter-arrow">▾</span>
+    </button>
+    <div class="cat-filter-dropdown" id="cat-filter-dropdown" style="display:none;"></div>
+  </div>
 </div>
 
 <!-- HINT DE INSTRUÇÃO (aparece depois das boas-vindas) -->
@@ -124,7 +120,7 @@
 <div id="map-container">
   <div id="map"></div>
   <div class="legend" id="map-legend">
-    <strong>Categorias</strong>
+    <strong>Legenda</strong>
   </div>
   <div class="legend" id="heat-legend" style="display:none;">
     <strong>Densidade de registros</strong>
@@ -181,6 +177,8 @@
       <option value="sinalizacao">Sinalização</option>
       <option value="meio_ambiente">Meio Ambiente</option>
       <option value="imovel_abandonado">Imóvel Abandonado</option>
+      <option value="cultura">Cultura</option>
+      <option value="cuidado_animal">Cuidado Animal</option>
     </select>
 
     <div id="alagamento-fields" style="display:none;">

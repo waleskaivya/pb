@@ -281,33 +281,97 @@ header span { font-size: 11px; color: var(--text-secondary); }
   border-color: #e53935;
 }
 
-/* --- FILTROS --- */
+/* --- FILTRO DE CATEGORIA (seletor compacto) --- */
 .toolbar {
   background: var(--bg-primary);
   border-bottom: 1px solid var(--border-color);
   padding: 8px 20px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
   flex-shrink: 0;
 }
 
-.cat-btn {
-  font-size: 11px;
-  padding: 4px 12px;
+.cat-filter-wrapper {
+  position: relative;
+}
+
+.cat-filter-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  padding: 6px 14px;
   border-radius: 20px;
   border: 1px solid var(--border-color);
   background: var(--bg-primary);
   color: var(--text-primary);
   cursor: pointer;
-  transition: 0.2s;
+  transition: border-color 0.2s;
+  font-family: inherit;
 }
 
-.cat-btn.active {
-  background: #d61616;
-  border-color: #ffffff;
-  color: white;
+.cat-filter-toggle:hover {
+  border-color: #d61616;
+}
+
+.cat-filter-arrow {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.cat-filter-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 190px;
+  max-height: 60vh;
+  overflow-y: auto;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  z-index: 99999 !important;
+  padding: 4px;
+}
+
+.cat-filter-wrapper {
+  z-index: 99999;
+}
+
+.cat-opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.cat-opt:hover {
+  background: var(--bg-secondary);
+}
+
+.cat-opt.active {
+  background: rgba(214,22,22,0.1);
+  color: #d61616;
+  font-weight: 600;
+}
+
+.cat-opt-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 /* --- HINT DE INSTRUÇÃO (centralizado, fixed) --- */
@@ -681,6 +745,165 @@ footer {
   background: #d61616;
 }
 
+/* --- BOTÃO DISCRETO DE FILTRO POR PERÍODO (abaixo do 🔥) --- */
+.date-filter-control {
+  margin-top: 4px !important;
+  position: relative;
+}
+
+.date-filter-control a {
+  width: 30px;
+  height: 30px;
+  line-height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  background: #fff;
+  color: #333;
+  text-decoration: none;
+  cursor: pointer;
+  filter: grayscale(100%);
+  opacity: 0.55;
+  transition: background 0.15s, filter 0.15s, opacity 0.15s;
+}
+
+.date-filter-control a:hover {
+  background: #f4f4f4;
+  opacity: 0.85;
+}
+
+.date-filter-control a.active {
+  background: #d61616;
+  filter: none;
+  opacity: 1;
+}
+
+[data-theme="dark"] .date-filter-control a {
+  background: #585858;
+  color: #e8e8e3;
+}
+
+[data-theme="dark"] .date-filter-control a:hover {
+  background: #7e7e7e;
+}
+
+[data-theme="dark"] .date-filter-control a.active {
+  background: #d61616;
+}
+
+.date-filter-panel {
+  position: absolute;
+  top: 0;
+  left: calc(100% + 8px);
+  width: 210px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  padding: 12px;
+  z-index: 10000;
+  font-family: inherit;
+}
+
+.date-filter-titulo {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.date-filter-rapido {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.date-filter-chip {
+  flex: 1 1 auto;
+  min-width: 40px;
+  padding: 5px 6px;
+  font-size: 11px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.date-filter-chip:hover {
+  border-color: #d61616;
+  color: #d61616;
+}
+
+.date-filter-divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 4px 0 10px;
+}
+
+.date-filter-label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 3px;
+}
+
+.date-filter-input {
+  width: 100%;
+  padding: 6px 8px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12px;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.date-filter-btns {
+  display: flex;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.date-filter-btn-limpar,
+.date-filter-btn-aplicar {
+  flex: 1;
+  padding: 7px 0;
+  font-size: 12px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+}
+
+.date-filter-btn-limpar {
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.date-filter-btn-limpar:hover {
+  color: #d61616;
+  border-color: #d61616;
+}
+
+.date-filter-btn-aplicar {
+  background: #d61616;
+  color: white;
+}
+
+.date-filter-btn-aplicar:hover {
+  background: #b31212;
+}
+
 /* --- POPUP DO LEAFLET — tamanho controlado em telas pequenas --- */
 .leaflet-popup-content-wrapper {
   max-width: min(260px, 72vw);
@@ -861,7 +1084,7 @@ footer {
     font-size: 11px;
   }
 
-  .toolbar { padding: 6px 12px; gap: 5px; }
+  .toolbar { padding: 6px 12px; }
 }
 .texto-destaque {
   background-color: rgba(229, 57, 53, 0.3);

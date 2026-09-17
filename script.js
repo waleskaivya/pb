@@ -20,7 +20,7 @@ if (!meuToken) {
 let adminLogado = false;
 
 // ============================================================
-// 4. CORES E LABELS  (nova categoria: imovel_abandonado)
+// 4. CORES E LABELS  (novas categorias: cultura, cuidado_animal)
 // ============================================================
 const catColors = {
   alagamento:        '#F47700',
@@ -31,7 +31,9 @@ const catColors = {
   lixo:              '#93CC16',
   sinalizacao:       '#41889D',
   meio_ambiente:     '#D51EDC',
-  imovel_abandonado: '#437363'
+  imovel_abandonado: '#437363',
+  cultura:           '#C9A227',
+  cuidado_animal:    '#FF6F91'
 };
 
 const catLabels = {
@@ -43,7 +45,9 @@ const catLabels = {
   lixo:              'Lixo',
   sinalizacao:       'Sinalização',
   meio_ambiente:     'Meio Ambiente',
-  imovel_abandonado: 'Imóvel Abandonado'
+  imovel_abandonado: 'Imóvel Abandonado',
+  cultura:           'Cultura',
+  cuidado_animal:    'Cuidado Animal'
 };
 
 // ============================================================
@@ -76,10 +80,11 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 // 6. LEGENDA
 // ============================================================
 const legendDiv = document.getElementById('map-legend');
-legendDiv.innerHTML = '<strong id="legend-title" style="cursor:pointer;user-select:none;">Categorias <span id="legend-arrow">▲</span></strong>';
+legendDiv.innerHTML = '<strong id="legend-title" style="cursor:pointer;user-select:none;">Legenda <span id="legend-arrow">▼</span></strong>';
 Object.keys(catColors).forEach(cat => {
   const item = document.createElement('div');
   item.className = 'leg-item';
+  item.style.display = 'none';
   item.innerHTML = `<span class="leg-dot" style="background:${catColors[cat]}"></span>${catLabels[cat]}`;
   legendDiv.appendChild(item);
 });
@@ -101,6 +106,24 @@ let pendingLatLng = null;
 let filtroAtivo = 'todos';
 let heatAtivo = false;
 let heatLayer = null;
+
+// Filtro por período (data de criação do registro)
+let filtroDataInicio = null; // Date | null
+let filtroDataFim    = null; // Date | null
+
+function passaFiltros(m) {
+  if (filtroAtivo !== 'todos' && m.cat !== filtroAtivo) return false;
+  if (filtroDataInicio && (!m.criadoEm || m.criadoEm < filtroDataInicio)) return false;
+  if (filtroDataFim && (!m.criadoEm || m.criadoEm > filtroDataFim)) return false;
+  return true;
+}
+
+function reaplicarFiltros() {
+  clusterGroup.clearLayers();
+  markers.forEach(m => { if (passaFiltros(m)) clusterGroup.addLayer(m.marker); });
+  legendDiv.style.display = (filtroAtivo === 'todos' && !heatAtivo) ? '' : 'none';
+  updateCounter();
+}
 
 // Cluster group — agrupa marcadores próximos com círculo numérico
 const clusterGroup = L.markerClusterGroup({
@@ -166,9 +189,7 @@ function makeIcon(color, denunciado, fotoPendente) {
 }
 
 function updateCounter() {
-  const total = filtroAtivo === 'todos'
-    ? markers.length
-    : markers.filter(m => m.cat === filtroAtivo).length;
+  const total = markers.filter(passaFiltros).length;
   document.getElementById('counter').textContent = `${total} registros no mapa`;
 
   if (heatAtivo) atualizarHeatmap();
@@ -179,7 +200,7 @@ function updateCounter() {
 // ============================================================
 function pontosParaHeatmap() {
   return markers
-    .filter(m => filtroAtivo === 'todos' || m.cat === filtroAtivo)
+    .filter(passaFiltros)
     .map(m => {
       const ll = m.marker.getLatLng();
       return [ll.lat, ll.lng, 0.6];
@@ -935,7 +956,7 @@ function lerDanosAlagamento() {
 // ============================================================
 function adicionarMarcador({ id, lat, lng, categoria, descricao, autor_token,
     alag_intensidade, alag_caracteristica, alag_danos, alag_data, denuncias, denunciasTokens,
-    foto_url, foto_status }) {
+    foto_url, foto_status, criado_em }) {
 
   const tokens = Array.isArray(denunciasTokens) ? denunciasTokens
                : Array.isArray(denuncias)        ? denuncias
@@ -956,7 +977,10 @@ function adicionarMarcador({ id, lat, lng, categoria, descricao, autor_token,
   marker.bindPopup(montarPopup(marker._registroData), popupOptions());
 
   clusterGroup.addLayer(marker);
-  markers.push({ marker, cat: categoria, id, autorToken: autor_token, denunciado, fotoPendente });
+  markers.push({
+    marker, cat: categoria, id, autorToken: autor_token, denunciado, fotoPendente,
+    criadoEm: criado_em ? new Date(criado_em) : null
+  });
   updateCounter();
 }
 
@@ -1289,34 +1313,150 @@ document.getElementById('btn-save').onclick = async function() {
 };
 
 // ============================================================
-// 19. FILTROS
+// 19. FILTROS (seletor compacto de categoria)
 // ============================================================
-document.querySelectorAll('.cat-btn').forEach(btn => {
-  btn.addEventListener('click', function() {
+const catFilterToggle   = document.getElementById('cat-filter-toggle');
+const catFilterLabel    = document.getElementById('cat-filter-label');
+const catFilterDropdown = document.getElementById('cat-filter-dropdown');
+
+function montarOpcaoCategoria(cat, label, cor) {
+  const opt = document.createElement('button');
+  opt.type = 'button';
+  opt.className = 'cat-opt' + (cat === 'todos' ? ' active' : '');
+  opt.dataset.cat = cat;
+  opt.innerHTML = `<span class="cat-opt-dot" style="background:${cor}"></span>${label}`;
+  return opt;
+}
+
+catFilterDropdown.appendChild(montarOpcaoCategoria('todos', 'Todos', '#d61616'));
+Object.keys(catLabels).forEach(cat => {
+  catFilterDropdown.appendChild(montarOpcaoCategoria(cat, catLabels[cat], catColors[cat]));
+});
+
+catFilterToggle.addEventListener('click', (e) => {
+  e.stopPropagation();
+  catFilterDropdown.style.display = catFilterDropdown.style.display === 'none' ? 'block' : 'none';
+});
+
+catFilterDropdown.addEventListener('click', (e) => e.stopPropagation());
+
+catFilterDropdown.querySelectorAll('.cat-opt').forEach(opt => {
+  opt.addEventListener('click', function() {
     filtroAtivo = this.dataset.cat;
 
-    document.querySelectorAll('.cat-btn').forEach(b => {
-      b.classList.remove('active');
-      b.style.background = '';
-      b.style.color = '';
-    });
+    catFilterDropdown.querySelectorAll('.cat-opt').forEach(o => o.classList.remove('active'));
     this.classList.add('active');
-    this.style.background = filtroAtivo === 'todos' ? '#d61616' : catColors[filtroAtivo];
-    this.style.color = 'white';
+    catFilterLabel.textContent = 'CATEGORIA: ' + (filtroAtivo === 'todos' ? 'Todos' : catLabels[filtroAtivo]);
+    catFilterDropdown.style.display = 'none';
 
-    clusterGroup.clearLayers();
-    markers.forEach(m => {
-      if (filtroAtivo === 'todos' || m.cat === filtroAtivo) {
-        clusterGroup.addLayer(m.marker);
-      }
+    reaplicarFiltros();
+  });
+});
+
+document.addEventListener('click', () => {
+  catFilterDropdown.style.display = 'none';
+});
+
+// ============================================================
+// 19B. FILTRO POR PERÍODO (botão discreto abaixo do 🔥)
+// ============================================================
+const DateFilterControl = L.Control.extend({
+  options: { position: 'topleft' },
+  onAdd: function() {
+    const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control date-filter-control');
+    const btn = L.DomUtil.create('a', '', container);
+    btn.href = '#';
+    btn.id = 'btn-date-filter';
+    btn.title = 'Filtrar por período';
+    btn.innerHTML = '<span aria-hidden="true">📅</span>';
+
+    const painel = L.DomUtil.create('div', 'date-filter-panel', container);
+    painel.id = 'date-filter-panel';
+    painel.style.display = 'none';
+    painel.innerHTML = `
+      <div class="date-filter-titulo">Filtrar por período</div>
+      <div class="date-filter-rapido">
+        <button type="button" class="date-filter-chip" data-dias="1">24h</button>
+        <button type="button" class="date-filter-chip" data-dias="7">7 dias</button>
+        <button type="button" class="date-filter-chip" data-dias="30">30 dias</button>
+        <button type="button" class="date-filter-chip" data-dias="0">Tudo</button>
+      </div>
+      <div class="date-filter-divider"></div>
+      <label class="date-filter-label">De</label>
+      <input type="date" id="date-filter-inicio" class="date-filter-input" />
+      <label class="date-filter-label">Até</label>
+      <input type="date" id="date-filter-fim" class="date-filter-input" />
+      <div class="date-filter-btns">
+        <button type="button" id="date-filter-limpar" class="date-filter-btn-limpar">Limpar</button>
+        <button type="button" id="date-filter-aplicar" class="date-filter-btn-aplicar">Aplicar</button>
+      </div>
+    `;
+
+    L.DomEvent.disableClickPropagation(container);
+
+    L.DomEvent.on(btn, 'click', function(e) {
+      L.DomEvent.stop(e);
+      painel.style.display = painel.style.display === 'none' ? 'block' : 'none';
     });
 
-    // Legenda só aparece quando o filtro "Todos" está ativo e fora do modo mapa de calor
-    legendDiv.style.display = (filtroAtivo === 'todos' && !heatAtivo) ? '' : 'none';
+    L.DomEvent.on(painel, 'click', function(e) { e.stopPropagation(); });
 
-    // Contador reflete apenas os registros da categoria filtrada (e sincroniza o heatmap, se ativo)
-    updateCounter();
-  });
+    painel.querySelectorAll('.date-filter-chip').forEach(chip => {
+      L.DomEvent.on(chip, 'click', function() {
+        const dias = parseInt(this.dataset.dias, 10);
+        if (dias === 0) {
+          filtroDataInicio = null;
+          filtroDataFim = null;
+          document.getElementById('date-filter-inicio').value = '';
+          document.getElementById('date-filter-fim').value = '';
+        } else {
+          const fim = new Date();
+          const inicio = new Date();
+          inicio.setDate(inicio.getDate() - dias);
+          filtroDataInicio = inicio;
+          filtroDataFim = fim;
+          document.getElementById('date-filter-inicio').value = inicio.toISOString().slice(0, 10);
+          document.getElementById('date-filter-fim').value = fim.toISOString().slice(0, 10);
+        }
+        atualizarBadgeDateFilter();
+        reaplicarFiltros();
+      });
+    });
+
+    return container;
+  }
+});
+map.addControl(new DateFilterControl());
+
+function atualizarBadgeDateFilter() {
+  const btn = document.getElementById('btn-date-filter');
+  const ativo = !!(filtroDataInicio || filtroDataFim);
+  btn.classList.toggle('active', ativo);
+  btn.title = ativo ? 'Filtro de período ativo — clique para ajustar' : 'Filtrar por período';
+}
+
+document.getElementById('date-filter-aplicar').addEventListener('click', () => {
+  const ini = document.getElementById('date-filter-inicio').value;
+  const fim = document.getElementById('date-filter-fim').value;
+  filtroDataInicio = ini ? new Date(ini + 'T00:00:00') : null;
+  filtroDataFim     = fim ? new Date(fim + 'T23:59:59') : null;
+  atualizarBadgeDateFilter();
+  reaplicarFiltros();
+  document.getElementById('date-filter-panel').style.display = 'none';
+});
+
+document.getElementById('date-filter-limpar').addEventListener('click', () => {
+  filtroDataInicio = null;
+  filtroDataFim = null;
+  document.getElementById('date-filter-inicio').value = '';
+  document.getElementById('date-filter-fim').value = '';
+  atualizarBadgeDateFilter();
+  reaplicarFiltros();
+});
+
+document.addEventListener('click', () => {
+  const painel = document.getElementById('date-filter-panel');
+  if (painel) painel.style.display = 'none';
 });
 
 // ============================================================
