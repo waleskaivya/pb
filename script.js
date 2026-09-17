@@ -1370,7 +1370,10 @@ const DateFilterControl = L.Control.extend({
     btn.title = 'Filtrar por período';
     btn.innerHTML = '<span aria-hidden="true">📅</span>';
 
-    const painel = L.DomUtil.create('div', 'date-filter-panel', container);
+    // O painel é anexado ao <body> (não ao container do mapa) para não ser
+    // cortado pelo "overflow: hidden" do #map-container em telas pequenas.
+    const painel = document.createElement('div');
+    painel.className = 'date-filter-panel';
     painel.id = 'date-filter-panel';
     painel.style.display = 'none';
     painel.innerHTML = `
@@ -1391,15 +1394,58 @@ const DateFilterControl = L.Control.extend({
         <button type="button" id="date-filter-aplicar" class="date-filter-btn-aplicar">Aplicar</button>
       </div>
     `;
+    document.body.appendChild(painel);
 
     L.DomEvent.disableClickPropagation(container);
 
+    function posicionarPainel() {
+      const margem = 10;
+      const rect = btn.getBoundingClientRect();
+
+      // Reseta para medir a largura/altura naturais do painel antes de posicionar
+      painel.style.maxHeight = '';
+      const largura = painel.offsetWidth;
+
+      // Tenta abrir à direita do botão; se não couber, abre abaixo dele
+      let left = rect.right + 8;
+      let top  = rect.top;
+      if (left + largura + margem > window.innerWidth) {
+        left = rect.left;
+        top  = rect.bottom + 8;
+      }
+
+      // Garante que nunca saia pelas laterais da tela
+      left = Math.min(left, window.innerWidth - largura - margem);
+      left = Math.max(margem, left);
+
+      // Garante que nunca comece abaixo da área visível
+      top = Math.min(top, window.innerHeight - margem - 60);
+      top = Math.max(margem, top);
+
+      // Altura máxima = espaço restante até o fim da tela, com rolagem interna
+      const alturaMax = window.innerHeight - top - margem;
+
+      painel.style.left = left + 'px';
+      painel.style.top = top + 'px';
+      painel.style.maxHeight = alturaMax + 'px';
+    }
+
     L.DomEvent.on(btn, 'click', function(e) {
       L.DomEvent.stop(e);
-      painel.style.display = painel.style.display === 'none' ? 'block' : 'none';
+      const abrir = painel.style.display === 'none';
+      if (abrir) {
+        painel.style.display = 'block';
+        posicionarPainel();
+      } else {
+        painel.style.display = 'none';
+      }
     });
 
     L.DomEvent.on(painel, 'click', function(e) { e.stopPropagation(); });
+
+    window.addEventListener('resize', () => {
+      if (painel.style.display !== 'none') posicionarPainel();
+    });
 
     painel.querySelectorAll('.date-filter-chip').forEach(chip => {
       L.DomEvent.on(chip, 'click', function() {
