@@ -317,8 +317,9 @@ header span { font-size: 11px; color: var(--text-secondary); }
 }
 
 .cat-filter-arrow {
-  font-size: 10px;
+  font-size: 20px !important;
   color: var(--text-secondary);
+  line-height: 1;
 }
 
 .cat-filter-dropdown {
