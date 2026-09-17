@@ -337,10 +337,6 @@ header span { font-size: 11px; color: var(--text-secondary); }
   padding: 4px;
 }
 
-.cat-filter-wrapper {
-  z-index: 99999;
-}
-
 .cat-opt {
   display: flex;
   align-items: center;
